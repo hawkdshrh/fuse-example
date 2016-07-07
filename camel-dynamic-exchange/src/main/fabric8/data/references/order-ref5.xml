@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    JBoss, Home of Professional Open Source
+    Copyright 2014, Red Hat, Inc. and/or its affiliates, and individual
+    contributors by the @authors tag. See the copyright.txt in the
+    distribution for a full listing of individual contributors.
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+-->
+<orderref xmlns="http://fabric8.com/examples/order-ref/v1">
+
+    <date>2012-03-04</date>
+
+    <location>sftp://node1?throwExceptionOnConnectFailed=true&amp;binary=true&amp;consumer.bridgeErrorHandler=true&amp;maximumReconnectAttempts=0&amp;stepwise=false&amp;username=ftptester&amp;password=ftppasswd&amp;strictHostKeyChecking=no&amp;privateKeyFile=/home/ftptester/.ssh/id_rsa&amp;disconnect=true&amp;timeout=6000000&amp;fileName=order5.xml&amp;move=/home/ftptester/processed/</location>
+    <!--location>ftp://ftptester@node1?password=ftppasswd&amp;fileName=order5.xml&amp;move=processed/</location-->
+        
+</orderref>
