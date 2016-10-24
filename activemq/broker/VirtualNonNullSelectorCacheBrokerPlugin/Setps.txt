@@ -1,3 +1,0 @@
-Build the project, mvn clean install
-Install the application on AMQ -- > install -s  mvn:com.test/BrokerPlugin/0.0.1
-Add plugin details in the etc/activemq.xml
