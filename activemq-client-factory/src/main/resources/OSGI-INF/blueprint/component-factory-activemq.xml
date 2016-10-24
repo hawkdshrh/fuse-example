@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+           xmlns:cm="http://aries.apache.org/blueprint/xmlns/blueprint-cm/v1.1.0"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="
+http://www.osgi.org/xmlns/blueprint/v1.0.0 http://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd
+http://aries.apache.org/blueprint/xmlns/blueprint-cm/v1.1.0 http://svn.apache.org/repos/asf/aries/trunk/blueprint/blueprint-cm/src/main/resources/org/apache/aries/blueprint/compendium/cm/blueprint-cm-1.1.0.xsd">
+
+    <cm:property-placeholder persistent-id="amq_consumer" update-strategy="reload" >
+        <cm:default-properties>
+            <cm:property name="out-uri" value="tcp://localhost:61617"/>
+            <cm:property name="audit-uri" value="tcp://localhost:61617"/>
+            <cm:property name="consumerCacheLevelName" value="CACHE_CONSUMER"/>
+            <cm:property name="producerCacheLevelName" value="CACHE_CONNECTION"/>
+        </cm:default-properties>
+    </cm:property-placeholder>
+    
+    <service id="auditComponentFactory" interface="com.redhat.gss.test.factory.CamelComponentFactory" >
+        <service-properties>
+            <entry key="provider" value="activemq-audit-producer"/>
+        </service-properties>
+        <bean class="com.redhat.gss.test.factory.producer.ProducerActiveMqComponentFactory">
+            <property name="brokerUrl" value="${audit-uri}"/>
+            <property name="userName" value="admin"/>
+            <property name="userPassword" value="admin"/>
+            <property name="cacheLevelName" value="${producerCacheLevelName}"/>
+        </bean>
+    </service>
+    
+    <service id="sourceComponentFactory" interface="com.redhat.gss.test.factory.CamelComponentFactory" >
+        <service-properties>
+            <entry key="provider" value="activemq-out-consumer"/>
+        </service-properties>
+        <bean class="com.redhat.gss.test.factory.consumer.ConsumerActiveMqComponentFactory">
+            <property name="brokerUrl" value="${out-uri}"/>
+            <property name="userName" value="admin"/>
+            <property name="userPassword" value="admin"/>
+            <property name="cacheLevelName" value="${consumerCacheLevelName}"/>
+        </bean>
+    </service>
+
+</blueprint>

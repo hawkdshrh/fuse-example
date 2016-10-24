@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<features name="${project.artifactId}">
+    <feature name="${project.artifactId}" version="${project.version}"> 	
+    	<details>${project.artifactId}-${project.version}::OSGi Feature</details>
+        <feature>camel-scr</feature>
+        <feature>activemq-camel</feature>
+        <bundle>mvn:${project.groupId}/${project.artifactId}/${project.version}</bundle>
+        <bundle>mvn:com.redhat.gss.test.factories/activemq-client-factory/1.0.0</bundle>
+    </feature>
+</features>
