@@ -1,0 +1,18 @@
+Manifest-Version: 1.0
+Bnd-LastModified: 1484751917380
+Build-Jdk: 1.8.0_111
+Built-By: dhawkins
+Bundle-ManifestVersion: 2
+Bundle-Name: Camel-CXFRS-JSON-Validation
+Bundle-SymbolicName: com.redhat.dhawkins.camel-cxfrs-json-xsd-validation
+Bundle-Version: 1.0.0.SNAPSHOT
+Created-By: Apache Maven Bundle Plugin
+Export-Package: com.redhat.camel.cxfrs.example.service.api;uses:="javax.
+ xml.bind.annotation,com.fasterxml.jackson.annotation,org.slf4j,javax.ws
+ .rs";version="1.0.0.SNAPSHOT"
+Import-Package: com.fasterxml.jackson.annotation;version="[2.6,3)",javax
+ .ws.rs;version="[2.0,3)",javax.xml.bind.annotation,org.apache.cxf.jaxrs
+ .provider.json,org.apache.cxf.jaxrs.utils.schemas;version="[3.0,4)",org
+ .osgi.service.blueprint;version="[1.0.0,2.0.0)",org.slf4j;version="[1.7
+ ,2)"
+Tool: Bnd-1.50.0

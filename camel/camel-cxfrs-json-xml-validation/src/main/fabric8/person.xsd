@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:tns="http://service.example.cxfrs.camel.redhat.com/api" targetNamespace="http://service.example.cxfrs.camel.redhat.com/api" version="1.0">
+
+  <xs:element name="person" type="tns:person"/>
+  
+  <xs:simpleType name="age">
+        <xs:restriction base="xs:unsignedShort">
+            <xs:minInclusive value="0"/>
+            <xs:maxInclusive value="150"/>
+        </xs:restriction>
+ </xs:simpleType>
+
+  <xs:complexType name="person">
+    <xs:sequence>
+      <xs:element minOccurs="1" maxOccurs="1" name="id" type="xs:string"/>
+      <xs:element minOccurs="1" maxOccurs="1" name="lastName" type="xs:string"/>
+      <xs:element minOccurs="1" maxOccurs="1" name="firstName" type="xs:string"/>
+      <xs:element minOccurs="1" maxOccurs="1" name="middleName" type="xs:string"/>
+      <xs:element minOccurs="1" maxOccurs="1" name="age" type="tns:age"/>
+    </xs:sequence>
+  </xs:complexType>
+</xs:schema>
