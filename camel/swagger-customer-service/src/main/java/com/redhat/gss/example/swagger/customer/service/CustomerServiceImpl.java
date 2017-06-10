@@ -7,12 +7,11 @@ import org.slf4j.LoggerFactory;
 import javax.ws.rs.core.Response;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 
 public class CustomerServiceImpl implements CustomerService {
 
     private static final Logger LOG = LoggerFactory.getLogger(CustomerServiceImpl.class);
-    private static final Map<Long, Customer> customers = new HashMap<Long, Customer>();
+    private static final Map<Long, Customer> customers = new HashMap<>();
 
     public CustomerServiceImpl() {
         init();
@@ -32,12 +31,12 @@ public class CustomerServiceImpl implements CustomerService {
 
         LOG.info("----invoking getCustomer, Customer id is: " + id);
 
-        long idNumber = Long.parseLong(id);
+        Long idNumber = Long.parseLong(id);
         Customer c = customers.get(idNumber);
 
         if (c == null) {
             System.out.println("Customer is null: " + (c == null));
-            response = Response.status(Response.Status.NOT_FOUND).entity("<error>Could not find customer</error>").build();
+            response = Response.noContent().status(204).build();
         } else {
             response = Response.status(Response.Status.OK).entity(c).build();
         }
@@ -53,7 +52,7 @@ public class CustomerServiceImpl implements CustomerService {
             customers.put(customer.getId(), customer);
             r = Response.ok(customer).build();
         } else {
-            r = Response.status(406).entity("Cannot find the customer!").build();
+            r = Response.notModified().status(204).build();
         }
 
         return r;
@@ -74,16 +73,18 @@ public class CustomerServiceImpl implements CustomerService {
 
         LOG.info("----invoking deleteCustomer, Customer id is: " + id);
 
-        long idNumber = Long.parseLong(id);
-        Customer c = customers.get(idNumber);
-
-        if (c == null) {
-            System.out.println("Customer not found : " + (c == null));
-            response = Response.notModified().build();
-        } else {
-            System.out.println("Customer deleted");
+        Long idNumber = Long.parseLong(id);
+        
+        if (customers.containsKey(idNumber)) {
+            
+            LOG.info("Customer deleted");
             customers.remove(idNumber);
             response = Response.ok().build();
+           
+        } else {
+            
+            LOG.info("Customer not found : " + (idNumber));
+            response = Response.notModified().status(204).build();
         }
 
         return response;

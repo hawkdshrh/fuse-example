@@ -8,7 +8,7 @@
        http://camel.apache.org/schema/blueprint/cxf http://camel.apache.org/schema/blueprint/cxf/camel-cxf.xsd">
 
     <cxf:rsServer id="rsServer"
-                  address="http://0.0.0.0:9091/cxf/customerservice"
+                  address="/customerservice"
                   serviceClass="com.redhat.gss.example.swagger.customer.service.CustomerServiceImpl"
                   loggingFeatureEnabled="true">
         <cxf:providers>
@@ -26,7 +26,7 @@
                 <property name="description" value="Sample REST-based Customer Service" />
                 <property name="version" value="4.0" />
                 <property name="runAsFilter" value="true" />
-                <property name="basePath" value="/customerservice"/>
+                <!--property name="basePath" value="/.."/-->
             </bean>
         </cxf:features>
     </cxf:rsServer>

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+           xmlns:camel="http://camel.apache.org/schema/blueprint"
+           xmlns:cxf="http://camel.apache.org/schema/blueprint/cxf"	
+           xsi:schemaLocation="http://www.osgi.org/xmlns/blueprint/v1.0.0 http://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd
+            http://aries.apache.org/blueprint/xmlns/blueprint-cm/v1.0.0 http://aries.apache.org/schemas/blueprint-cm/blueprint-cm-1.0.0.xsd
+            http://camel.apache.org/schema/blueprint http://camel.apache.org/schema/blueprint/camel-blueprint.xsd"
+           default-activation="eager">
+	
+    <bean id="pplBean" class="com.redhat.camel.cxfrs.example.service.api.PersonService" />
+    
+    <bean id="jsonTypes" class="java.util.ArrayList">
+        <argument>
+            <list value-type="java.lang.String">
+                <value>application/json</value>
+                <value>application/x-javascript</value>
+            </list>
+        </argument>
+    </bean>
+    
+    <bean id="jsonNamespaceMap" class="java.util.Hashtable">
+        <argument>
+            <map>
+                <entry key="http://service.example.cxfrs.camel.redhat.com/api" value="ps1"/>
+            </map>
+        </argument>
+    </bean>
+    
+    <!-- define rest end point -->
+    <cxf:rsServer id="inputServer" address="/ppl" serviceClass="com.redhat.camel.cxfrs.example.service.api.PersonService" loggingFeatureEnabled="true">  	
+        <cxf:inInterceptors>
+            <bean class="com.redhat.camel.cxfrs.example.service.impl.ValidationInterceptor">
+                <property name="schemaLocation" value="personSchema.json"/>
+            </bean>
+        </cxf:inInterceptors>
+        <cxf:providers>
+            <bean class="org.apache.cxf.jaxrs.provider.json.JSONProvider" >
+                <property name="inTransformElements">
+                    <map>
+                        <entry key="*" value="ps1:*"/>
+                        <entry key="{*}*" value="ps1:*"/>
+                    </map>
+                </property>
+                <property name="outTransformElements">
+                    <map>
+                        <entry key="ps1:*" value="*"/>
+                    </map>
+                </property>
+                <property name="dropRootElement" value="true" />
+                <property name="supportUnwrapped" value="true" />
+                <property name="consumeMediaTypes" ref="jsonTypes" />  
+                <property name="namespaceMap" ref="jsonNamespaceMap"/>            
+            </bean>
+        </cxf:providers>    	              
+    </cxf:rsServer>
+       
+    <camelContext xmlns="http://camel.apache.org/schema/blueprint" trace="true">
+        
+        <route id="cxfrs-test">
+            <from uri="cxfrs:bean:inputServer?bindingStyle=SimpleConsumer" />
+            <to uri="log:body?level=INFO"/>
+            <recipientList>
+                <simple>direct:${header.operationName}</simple>
+            </recipientList>
+        </route>
+        
+        <route id="getPerson">
+            <from uri="direct:getPerson"/>
+            <bean ref="pplBean" method="getPerson" />
+        </route>
+        
+        <route id="addPerson">
+            <from uri="direct:addPerson"/>
+            <bean ref="pplBean" method="addPerson" />
+        </route>
+
+    </camelContext>
+
+</blueprint>
+

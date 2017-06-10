@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:cm="http://aries.apache.org/blueprint/xmlns/blueprint-cm/v1.2.0"
+           xmlns:ext="http://aries.apache.org/blueprint/xmlns/blueprint-ext/v1.0.0"
+           xmlns:cxf="http://camel.apache.org/schema/blueprint/cxf"
+           xmlns:cxfcore="http://cxf.apache.org/blueprint/core"
+           xmlns:http-conf="http://cxf.apache.org/transports/http/configuration"
+           xsi:schemaLocation="
+       http://www.osgi.org/xmlns/blueprint/v1.0.0 http://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd
+       http://camel.apache.org/schema/blueprint http://camel.apache.org/schema/blueprint/camel-blueprint.xsd
+       http://cxf.apache.org/transports/http/configuration http://cxf.apache.org/schemas/configuration/http-conf.xsd
+       http://camel.apache.org/schema/blueprint/cxf http://camel.apache.org/schema/blueprint/cxf/camel-cxf.xsd
+       http://cxf.apache.org/blueprint/core http://cxf.apache.org/schemas/blueprint/core.xsd">
+
+    <ext:property-placeholder id="camel.cxf.ws.fabric">
+        <ext:default-properties>
+            <ext:property name="ips.allowed" value="${sys:ips.allowed}"/>
+            <ext:property name="ips.denied" value="${sys:ips.denied}"/>
+
+            <ext:property name="server.host" value="0.0.0.0"/>
+            <ext:property name="server.port" value="8081"/>
+        </ext:default-properties>
+    </ext:property-placeholder>    
+
+    <bean id="ipAddressInInterceptor" class="com.redhat.gss.example.fuse.processor.IpAddressFilterProcessor">
+        <property name="allowedListString" value="${ips.allowed}"/>
+        <property name="deniedListString" value="${ips.denied}"/>
+    </bean>
+    
+    <bean id="greetingsProcessor" class="com.redhat.gss.example.fuse.processor.GreetingsProcessor"/>
+
+    <cxf:cxfEndpoint id="simpleWSEndpoint" address="http://${server.host}:${server.port}/simplews"
+                     serviceClass="com.redhat.gss.example.fuse.service.GreetingsService">
+        <cxf:inInterceptors>
+            <bean class="org.apache.cxf.interceptor.LoggingInInterceptor"/>
+        </cxf:inInterceptors>
+        <cxf:outInterceptors>
+            <bean class="org.apache.cxf.interceptor.LoggingOutInterceptor"/>
+        </cxf:outInterceptors>
+    </cxf:cxfEndpoint>
+
+    
+
+    <camelContext id="fabricCamelWs" trace="false" xmlns="http://camel.apache.org/schema/blueprint">
+        
+        <route id="serviceRoute" streamCache="true">
+            <from uri="cxf:bean:simpleWSEndpoint"/>
+            <log message="SERVER RECEIVED MSG: ${body}" loggingLevel="INFO"/>
+            <process ref="ipAddressInInterceptor"/>
+            <log message="MESSAGE FROM: ${headers.SourceIP}" loggingLevel="INFO"/>
+            <process ref="greetingsProcessor"/>
+            <log message="SENDING RESPONSE MSG: ${body}" loggingLevel="INFO"/>
+        </route>
+        
+    </camelContext>
+    
+    <http-conf:conduit name="*.http-conduit">
+        <http-conf:client ConnectionTimeout="5000"
+                          ReceiveTimeout="30000" />
+    </http-conf:conduit>
+
+    
+</blueprint>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0" 
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+           xmlns:camel="http://camel.apache.org/schema/blueprint"
+           xmlns:cm="http://aries.apache.org/blueprint/xmlns/blueprint-cm/v1.1.0"
+           xsi:schemaLocation="
+    http://www.osgi.org/xmlns/blueprint/v1.0.0 http://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd
+    http://aries.apache.org/blueprint/xmlns/blueprint-cm/v1.1.0 http://aries.apache.org/schemas/blueprint-cm/blueprint-cm-1.1.0.xsd
+    http://camel.apache.org/schema/blueprint http://camel.apache.org/schema/blueprint/camel-blueprint.xsd">
+
+    <!-- Property Placeholder -->
+    <cm:property-placeholder persistent-id="drain.test" update-strategy="none" xmlns="http://aries.apache.org/blueprint/xmlns/blueprint-cm/v1.1.0" />
+    
+    <bean id="jmsQueueDrainRouteBuilder" class="com.redhat.example.route.JmsQueueDrainRouteBuilder">
+        <property name="autoStartup" value="${jmsQueueDrainAutoStart}" />
+        <property name="jmsComponent" value="source" />
+        <property name="jmsSourceDestinations" value="${jmsSourceDestinations}" />
+        <property name="maximumRedeliveries" value="${jmsQueueDrainMaximumRedeliveries}" />
+    </bean>
+    
+    <bean id="source" class="org.apache.activemq.camel.component.ActiveMQComponent">
+        <property name="connectionFactory">
+            <bean class="org.apache.activemq.ActiveMQConnectionFactory">
+                <argument value="${amq.url}"/>
+                <property name="userName" value="${amq.username}" />
+                <property name="password" value="${amq.password}" />
+            </bean>
+        </property>
+    </bean> 
+
+    <camelContext id="jmsQueueDrainRouteBuilder_context" xmlns="http://camel.apache.org/schema/blueprint"  useMDCLogging="true">
+        <routeBuilder ref="jmsQueueDrainRouteBuilder" />
+    </camelContext>
+    
+</blueprint>

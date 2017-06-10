@@ -1,8 +1,6 @@
 JSON Validation Project for Blueprint (OSGi)
 =========================================
 
-To build this project use
-
-    mvn install
+Example of json validation against an XML schema.
 
 

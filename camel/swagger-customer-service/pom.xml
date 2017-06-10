@@ -19,9 +19,9 @@
         to the profile.  Here we are just adding the artifact bundle from this
         project -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <jboss.fuse.bom.version>6.2.1.redhat-159</jboss.fuse.bom.version>
-        <fabric.version>1.2.0.redhat-621159</fabric.version>
-        <fabric8.bom.version>1.2.0.redhat-621159</fabric8.bom.version>
+        <jboss.fuse.bom.version>6.2.1.redhat-084</jboss.fuse.bom.version>
+        <fabric.version>1.2.0.redhat-621084</fabric.version>
+        <fabric8.bom.version>1.2.0.redhat-621084</fabric8.bom.version>
         <!-- fabric8 deploy profile configuration -->
         <fabric8.profile>redhat-example-customer-service</fabric8.profile>
         <fabric8.parentProfiles>feature-camel</fabric8.parentProfiles>
