@@ -7,6 +7,8 @@ package org.fusebyexample.mq_fabric_client.simple;
 
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.Destination;
@@ -15,6 +17,7 @@ import javax.jms.Message;
 import javax.jms.MessageConsumer;
 import javax.jms.Session;
 import javax.jms.TransactionRolledBackException;
+import org.apache.activemq.command.ActiveMQMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,6 +41,9 @@ public class ConsumerThread extends Thread {
     private final long transactionDelay;
     private final long readDelay;
     private final Timer timer = new Timer();
+    private final Executor executor = Executors.newCachedThreadPool();
+    private Boolean isCommit = false;
+
     private boolean isDone = false;
 
     private static final Logger LOG = LoggerFactory.getLogger(ConsumerThread.class);
@@ -58,64 +64,123 @@ public class ConsumerThread extends Thread {
     @Override
     public void run() {
 
+        boolean connected = false;
+        int msgsRecd = 0;
+
         try {
-            if (transacted && transactionIsBatch) {
-                timer.schedule(new CommitTask(), transactionDelay);
-            }
-            connection = factory.createConnection();
-            connection.setClientID(clientPrefix + "." + destination + "-" + Integer.toString(this.threadNum) + "-" + Long.toString(System.currentTimeMillis()));
-            connection.start();
-            LOG.info("Started consumer: " + connection.getClientID());
-            if (transacted) {
-                session = connection.createSession(transacted, Session.SESSION_TRANSACTED);
-            } else {
-                session = connection.createSession(transacted, Session.AUTO_ACKNOWLEDGE);
-            }
 
-            if (selector != null && !selector.isEmpty()) {
-                LOG.info("With selector: " + selector);
-                consumer = session.createConsumer(destination, selector);
-            } else {
-                consumer = session.createConsumer(destination);
-            }
+            while (!isDone) {
 
-            boolean finished = false;
-            int msgsRecd = 0;
-            while (!finished) {
+                while (!connected) {
 
-                Message message = consumer.receive(messageTimeoutMs);
+                    try {
 
-                if (message != null) {
-                    msgsRecd++;
-                    LOG.info("Thread {}: {} : Got message {}; total: {}.", this.threadNum, System.currentTimeMillis(), message.getJMSMessageID(), msgsRecd);
-                    if (transacted && !transactionIsBatch) {
-                        Thread.sleep(transactionDelay);
-                        try {
-                            session.commit();
-                            LOG.info("Thread {}: Acked message {}.", this.threadNum, message.getJMSMessageID());
-                        } catch (TransactionRolledBackException ex) {
-                            LOG.info("Thread {}: Rolling back message {}.", this.threadNum, message.getJMSMessageID());
-                            session.rollback();
+                        connection = factory.createConnection();
+                        connection.setClientID(clientPrefix + "." + destination + "-" + Integer.toString(this.threadNum) + "-" + Long.toString(System.currentTimeMillis()));
+                        connection.start();
+                        LOG.info("Started consumer: " + connection.getClientID());
+                        if (transacted) {
+                            session = connection.createSession(transacted, Session.SESSION_TRANSACTED);
+                        } else {
+                            session = connection.createSession(transacted, Session.CLIENT_ACKNOWLEDGE);
                         }
-                    } else {
-                        Thread.sleep(readDelay);
-                    }
 
-                } else {
-                    finished = true;
+                        if (selector != null && !selector.isEmpty()) {
+                            LOG.info("With selector: " + selector);
+                            consumer = session.createConsumer(destination, selector);
+                        } else {
+                            consumer = session.createConsumer(destination);
+                        }
+                        if (transacted && transactionIsBatch) {
+                            timer.scheduleAtFixedRate(new CommitTask(), transactionDelay, transactionDelay);
+                        }
+                        connected = true;
+                    } catch (Exception ex) {
+                        connected = false;
+                        LOG.error("Unhandled exception while connecting.  Retrying...");
+                        if (consumer != null) {
+                            try {
+                                LOG.info("Closing consumer: {}", this.threadNum);
+                                consumer.close();
+                            } catch (JMSException exC) {
+                                LOG.error("Caught JMSException: ", exC);
+                            }
+                        }
+                        if (session != null) {
+                            try {
+                                LOG.info("Closing session: {}", this.threadNum);
+                                session.close();
+                            } catch (JMSException exS) {
+                                LOG.error("Caught JMSException: ", exS);
+                            }
+                        }
+                        if (connection != null) {
+                            try {
+                                LOG.info("Closing connection: {}", this.threadNum);
+                                connection.close();
+                            } catch (JMSException e) {
+                                LOG.error("Error closing connection", e);
+                            }
+                        }
+                    } 
                 }
-                
+
+                try {
+
+                    Message message = consumer.receive(messageTimeoutMs);
+
+                    if (message != null) {
+                        msgsRecd++;
+                        LOG.info("Thread {}: {} : Got message {}; total: {} path: {}.", this.threadNum, System.currentTimeMillis(), message.getJMSMessageID(), msgsRecd, ((ActiveMQMessage) message).getBrokerPath());
+
+                        if (transacted && !transactionIsBatch) {
+                            Thread.sleep(transactionDelay);
+                            try {
+                                session.commit();
+                                LOG.info("Thread {}: Acked message {}.", this.threadNum, message.getJMSMessageID());
+                            } catch (TransactionRolledBackException ex) {
+                                LOG.info("Thread {}: Rolling back message {}.", this.threadNum, message.getJMSMessageID());
+                                session.rollback();
+                            }
+                        } else {
+
+                            if (readDelay > 0) {
+                                Thread.sleep(readDelay);
+                            }
+                            message.acknowledge();
+                            LOG.info("Thread {}: Acked message {}.", this.threadNum, message.getJMSMessageID());
+                        }
+                        if (transacted && isCommit) {
+                            try {
+                                session.commit();
+                                isCommit = false;
+                                LOG.info("Thread {}: Acked message {}.", this.threadNum, message.getJMSMessageID());
+                            } catch (TransactionRolledBackException ex) {
+                                LOG.info("Thread {}: Rolling back message {}.", this.threadNum, message.getJMSMessageID());
+                                session.rollback();
+                            }
+                        }
+
+                    }
+                } catch (JMSException eJMS) {
+                    LOG.error("Caught JMSException: ", eJMS);
+                } catch (InterruptedException eI) {
+                    LOG.error("Caught InterruptedException: ", eI);
+                    isDone = true;
+                }
             }
-            consumer.close();
-            isDone = true;
-        } catch (JMSException eJMS) {
-            LOG.error("Caught JMSException: ", eJMS);
-        } catch (InterruptedException eI) {
-            LOG.error("Caught InterruptedException: ", eI);
-            isDone = true;
         } finally {
+            if (consumer != null) {
+                try {
+                    LOG.info("Closing consumer: {}", this.threadNum);
+                    consumer.close();
+                } catch (JMSException ex) {
+                    LOG.error("Caught JMSException: ", ex);
+                }
+            }
             if (session != null) {
                 try {
+                    LOG.info("Closing session: {}", this.threadNum);
                     session.close();
                 } catch (JMSException ex) {
                     LOG.error("Caught JMSException: ", ex);
@@ -123,6 +188,7 @@ public class ConsumerThread extends Thread {
             }
             if (connection != null) {
                 try {
+                    LOG.info("Closing connection: {}", this.threadNum);
                     connection.close();
                 } catch (JMSException e) {
                     LOG.error("Error closing connection", e);
@@ -133,19 +199,15 @@ public class ConsumerThread extends Thread {
 
     public boolean isDone() {
         return isDone;
+
     }
 
     class CommitTask extends TimerTask {
 
         @Override
         public void run() {
-            try {
-                LOG.info("Committing session...");
-                session.commit();
-                timer.schedule(new CommitTask(), transactionDelay);
-            } catch (JMSException ex) {
-                LOG.error(null, ex);
-            }
+            LOG.info("Dest: " + destination + " : Thread " + threadNum + ": Committing session...");
+            isCommit = true;
         }
     }
 

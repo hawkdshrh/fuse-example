@@ -19,6 +19,7 @@ package org.fusebyexample.mq_fabric_client.simple;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Properties;
 import javax.jms.*;
@@ -34,12 +35,15 @@ public class ThreadedConsumer {
 
     private static final Logger LOG = LoggerFactory.getLogger(ThreadedConsumer.class);
 
+    private static String INITIAL_CONTEXT_FACTORY = "org.apache.activemq.jndi.ActiveMQInitialContextFactory";
+    private static String NAMING_PROVIDER_URL;
     private static final String DESTINATIONS = "destinations";
     private static String CONNECTION_FACTORY_NAME = "myJmsFactory";
     private static String CLIENT_PREFIX = "client";
     private static boolean SESSION_TRANSACTED = false;
     private static int MESSAGE_TIMEOUT_MILLISECONDS = 30000;
     private static int NUM_THREADS_PER_DESTINATION = 1;
+    private static long THREAD_STARTUP_DELAY = 0;
     private static boolean TRANSACTION_IS_BATCH = false;
     private static long TRANSACTION_DELAY = 0;
     private static long READ_DELAY = 0;
@@ -48,12 +52,13 @@ public class ThreadedConsumer {
     private static boolean WATCH_TOPIC_ADVISIORIES = false;
     private static boolean EXCLUSIVE_CONSUMER = false;
     private static boolean STATS_ENABLED = false;
+    private static boolean OPTIMIZE_ACK = false;
+    private static boolean BROWSE_ONLY = false;
     private static int CONNECTION_CLOSE_TIMEOUT = 15000;
     private static String SELECTOR;
-    
 
     public static void main(String args[]) throws InterruptedException, IOException {
-        
+
         String brokerUrl = System.getProperty("java.naming.provider.url");
 
         if (brokerUrl != null) {
@@ -63,19 +68,23 @@ public class ThreadedConsumer {
         }
         //Connection connection = null;
         try {
-            
+
             Properties properties = new Properties();
             try {
                 properties.load(new FileInputStream("jndi.properties"));
-            } catch (Exception ex) {
+            } catch (IOException ex) {
+                LOG.warn("jndi.properties not found, defaulting to packaged version.");
                 properties.load(ThreadedConsumer.class.getResourceAsStream("/jndi.properties"));
             }
-            System.setProperty("java.naming.provider.url", properties.getProperty("java.naming.provider.url"));
+
+            INITIAL_CONTEXT_FACTORY = properties.getProperty("java.naming.factory.initial");
+            NAMING_PROVIDER_URL = properties.getProperty("java.naming.provider.url");
             CONNECTION_FACTORY_NAME = properties.getProperty("connectionFactoryNames");
             CLIENT_PREFIX = properties.getProperty("client.prefix");
             SESSION_TRANSACTED = Boolean.parseBoolean(properties.getProperty("session.transacted"));
             MESSAGE_TIMEOUT_MILLISECONDS = Integer.parseInt(properties.getProperty("message.timeout.ms"));
             NUM_THREADS_PER_DESTINATION = Integer.parseInt(properties.getProperty("num.threads.per.dest"));
+            THREAD_STARTUP_DELAY = Long.parseLong(properties.getProperty("delay.between.threads"));
             TRANSACTION_IS_BATCH = Boolean.parseBoolean(properties.getProperty("transacted.batch"));
             TRANSACTION_DELAY = Long.parseLong(properties.getProperty("transacted.delay"));
             READ_DELAY = Long.parseLong(properties.getProperty("read.delay"));
@@ -84,39 +93,58 @@ public class ThreadedConsumer {
             WATCH_TOPIC_ADVISIORIES = Boolean.parseBoolean(properties.getProperty("watch.topic.advisories"));
             EXCLUSIVE_CONSUMER = Boolean.parseBoolean(properties.getProperty("exclusive.consumer"));
             STATS_ENABLED = Boolean.parseBoolean(properties.getProperty("stats.enabled"));
+            OPTIMIZE_ACK = Boolean.parseBoolean(properties.getProperty("optimize.ack"));
+            BROWSE_ONLY = Boolean.parseBoolean(properties.getProperty("is.browser"));
             CONNECTION_CLOSE_TIMEOUT = Integer.parseInt(properties.getProperty("connection.close.timeout"));
             SELECTOR = properties.getProperty("message.selector");
-            
-            String destinationNameList =  properties.getProperty(DESTINATIONS);
+
+            System.setProperty("java.naming.factory.initial", INITIAL_CONTEXT_FACTORY);
+            System.setProperty("java.naming.provider.url", NAMING_PROVIDER_URL);
+
+            String destinationNameList = properties.getProperty(DESTINATIONS);
             String[] destinationNames = destinationNameList.split(",");
-            
+
             // JNDI lookup of JMS Connection Factory and JMS Destination
-            Context context = new InitialContext();
+            Hashtable env = new Hashtable();
+            for (String property : properties.stringPropertyNames()) {
+                env.put(property, properties.getProperty(property));
+            }
+
+            Context context = new InitialContext(env);
             ConnectionFactory factory = (ConnectionFactory) context.lookup(CONNECTION_FACTORY_NAME);
 
-            ((ActiveMQConnectionFactory)factory).setSendAcksAsync(ACK_ASYNC);
-            ((ActiveMQConnectionFactory)factory).setCopyMessageOnSend(COPY_ON_SEND);
-            ((ActiveMQConnectionFactory)factory).setWatchTopicAdvisories(WATCH_TOPIC_ADVISIORIES);
-            ((ActiveMQConnectionFactory)factory).setExclusiveConsumer(EXCLUSIVE_CONSUMER);
-            ((ActiveMQConnectionFactory)factory).setStatsEnabled(STATS_ENABLED);
-            ((ActiveMQConnectionFactory)factory).setCloseTimeout(CONNECTION_CLOSE_TIMEOUT);
-            ((ActiveMQConnectionFactory)factory).setCloseTimeout(CONNECTION_CLOSE_TIMEOUT);           
+            ((ActiveMQConnectionFactory) factory).setSendAcksAsync(ACK_ASYNC);
+            ((ActiveMQConnectionFactory) factory).setCopyMessageOnSend(COPY_ON_SEND);
+            ((ActiveMQConnectionFactory) factory).setWatchTopicAdvisories(WATCH_TOPIC_ADVISIORIES);
+            ((ActiveMQConnectionFactory) factory).setExclusiveConsumer(EXCLUSIVE_CONSUMER);
+            ((ActiveMQConnectionFactory) factory).setStatsEnabled(STATS_ENABLED);
+            ((ActiveMQConnectionFactory) factory).setCloseTimeout(CONNECTION_CLOSE_TIMEOUT);
+            ((ActiveMQConnectionFactory) factory).setCloseTimeout(CONNECTION_CLOSE_TIMEOUT);
+            ((ActiveMQConnectionFactory) factory).setOptimizeAcknowledge(OPTIMIZE_ACK);
 
-            
             List<Destination> destinations = new ArrayList<>();
-            
+
             for (String destinationName : destinationNames) {
                 destinations.add((Destination) context.lookup(destinationName));
             }
 
-            List<ConsumerThread> threads = new ArrayList<>();
-            
+            List<Thread> threads = new ArrayList<>();
+
             for (Destination destination : destinations) {
 
                 for (int i = 0; i < NUM_THREADS_PER_DESTINATION; i++) {
-                    ConsumerThread consumerThread = new ConsumerThread(factory, destination, i + 1, CLIENT_PREFIX, MESSAGE_TIMEOUT_MILLISECONDS, SELECTOR, SESSION_TRANSACTED, TRANSACTION_IS_BATCH, TRANSACTION_DELAY, READ_DELAY);
-                    consumerThread.start();
-                    threads.add(consumerThread);
+                    if (!BROWSE_ONLY) {
+                        ConsumerThread consumerThread = new ConsumerThread(factory, destination, i + 1, CLIENT_PREFIX, MESSAGE_TIMEOUT_MILLISECONDS, SELECTOR, SESSION_TRANSACTED, TRANSACTION_IS_BATCH, TRANSACTION_DELAY, READ_DELAY);
+                        consumerThread.start();
+                        threads.add(consumerThread);
+                    } else {
+                        BrowserThread browserThread = new BrowserThread(factory, destination, i + 1, CLIENT_PREFIX, MESSAGE_TIMEOUT_MILLISECONDS, SELECTOR, SESSION_TRANSACTED, TRANSACTION_IS_BATCH, TRANSACTION_DELAY, READ_DELAY);
+                        browserThread.start();
+                        threads.add(browserThread);
+                    }
+                    if (THREAD_STARTUP_DELAY > 0) {
+                        Thread.sleep(THREAD_STARTUP_DELAY);
+                    }
                 }
             }
             for (Thread thread : threads) {

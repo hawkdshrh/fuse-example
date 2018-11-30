@@ -41,18 +41,26 @@ public class ThreadedProducer {
     private static int NUM_MESSAGES_TO_BE_SENT_PER_DESTINATION = 1;
     private static int NUM_THREADS_PER_DESTINATION = 1;
     private static int MESSAGE_LENGTH = 0;
+    private static boolean MESSAGE_LENGTH_FIXED = true;
     private static boolean PRODUCER_USE_ASYNC = true;
     private static boolean TRANSACTED = false;
     private static boolean PERSISTENT = true;
+    private static boolean DYNAMIC = false;
     private static int PRODUCER_WINDOW_SIZE = 1024000;
     private static String CONNECTION_FACTORY_NAME = "myJmsFactory";
     private static String CLIENT_PREFIX = "client";
     private static String BODY = null;
     private static final String DESTINATIONS = "destinations";
-    private static final String HEADERNAMES = "headers";
-    private static final String PROPNAMES = "props";
-    private static final Map<String,String> HEADERS = new HashMap<>();
-    private static final Map<String,String> PROPS = new HashMap<>();
+    private static final String STRING_HEADERNAMES = "headers.string";
+    private static final String INT_HEADERNAMES = "headers.integer";
+    private static final String LONG_HEADERNAMES = "headers.long";
+    private static final String DBL_HEADERNAMES = "headers.double";
+    private static final String BOOL_HEADERNAMES = "headers.boolean";
+    private static final Map<String, String> STRING_HEADERS = new HashMap<>();
+    private static final Map<String, Integer> INT_HEADERS = new HashMap<>();
+    private static final Map<String, Long> LONG_HEADERS = new HashMap<>();
+    private static final Map<String, Double> DBL_HEADERS = new HashMap<>();
+    private static final Map<String, Boolean> BOOL_HEADERS = new HashMap<>();
 
     public static void main(String args[]) throws IOException, InterruptedException {
 
@@ -81,20 +89,46 @@ public class ThreadedProducer {
             PRODUCER_USE_ASYNC = Boolean.parseBoolean(properties.getProperty("producer.use.async"));
             PRODUCER_WINDOW_SIZE = Integer.parseInt(properties.getProperty("producer.window.size"));
             MESSAGE_LENGTH = Integer.parseInt(properties.getProperty("message.length"));
+            MESSAGE_LENGTH_FIXED = Boolean.parseBoolean(properties.getProperty("message.length.fixed"));
             CONNECTION_FACTORY_NAME = properties.getProperty("connectionFactoryNames");
             CLIENT_PREFIX = properties.getProperty("client.prefix");
             TRANSACTED = Boolean.parseBoolean(properties.getProperty("transacted"));
             PERSISTENT = Boolean.parseBoolean(properties.getProperty("persistent"));
+            DYNAMIC = Boolean.parseBoolean(properties.getProperty("dynamic"));
             BODY = properties.getProperty("body");
 
             String destinationNameList = properties.getProperty(DESTINATIONS);
             String[] destinationNames = destinationNameList.split(",");
-            
-            String headerNameList = properties.getProperty(HEADERNAMES);
-            String[] headerNames = headerNameList.split(",");
-            
-            String propNameList = properties.getProperty(PROPNAMES);
-            String[] propNames = propNameList.split(",");
+
+            String stringHeaderNameList = properties.getProperty(STRING_HEADERNAMES);
+            String[] stringHeaderNames = null;
+            if (stringHeaderNameList != null && !stringHeaderNameList.isEmpty()) {
+                stringHeaderNames = stringHeaderNameList.split(",");
+            }
+
+            String intHeaderNameList = properties.getProperty(INT_HEADERNAMES);
+            String[] intHeaderNames = null;
+            if (intHeaderNameList != null && !intHeaderNameList.isEmpty()) {
+                intHeaderNames = intHeaderNameList.split(",");
+            }
+
+            String longHeaderNameList = properties.getProperty(LONG_HEADERNAMES);
+            String[] longHeaderNames = null;
+            if (longHeaderNameList != null && !longHeaderNameList.isEmpty()) {
+                longHeaderNames = longHeaderNameList.split(",");
+            }
+
+            String dblHeaderNameList = properties.getProperty(DBL_HEADERNAMES);
+            String[] dblHeaderNames = null;
+            if (dblHeaderNameList != null && !dblHeaderNameList.isEmpty()) {
+                dblHeaderNames = dblHeaderNameList.split(",");
+            }
+
+            String boolHeaderNameList = properties.getProperty(BOOL_HEADERNAMES);
+            String[] boolHeaderNames = null;
+            if (boolHeaderNameList != null && !boolHeaderNameList.isEmpty()) {
+                boolHeaderNames = boolHeaderNameList.split(",");
+            }
 
             // JNDI lookup of JMS Connection Factory and JMS Destination
             Context context = new InitialContext();
@@ -108,13 +142,35 @@ public class ThreadedProducer {
             for (String destinationName : destinationNames) {
                 destinations.add((Destination) context.lookup(destinationName));
             }
-            
-            for (String headerName : headerNames) {
-                HEADERS.put(headerName, properties.getProperty(headerName));
+
+            if (stringHeaderNames != null) {
+                for (String stringHeaderName : stringHeaderNames) {
+                    STRING_HEADERS.put(stringHeaderName, properties.getProperty(stringHeaderName));
+                }
             }
-            
-            for (String propName : propNames) {
-                PROPS.put(propName, properties.getProperty(propName));
+
+            if (intHeaderNames != null) {
+                for (String intHeaderName : intHeaderNames) {
+                    INT_HEADERS.put(intHeaderName, Integer.parseInt(properties.getProperty(intHeaderName)));
+                }
+            }
+
+            if (longHeaderNames != null) {
+                for (String longHeaderName : longHeaderNames) {
+                    LONG_HEADERS.put(longHeaderName, Long.parseLong(properties.getProperty(longHeaderName)));
+                }
+            }
+
+            if (dblHeaderNames != null) {
+                for (String dblHeaderName : dblHeaderNames) {
+                    DBL_HEADERS.put(dblHeaderName, Double.parseDouble(properties.getProperty(dblHeaderName)));
+                }
+            }
+
+            if (boolHeaderNames != null) {
+                for (String boolHeaderName : boolHeaderNames) {
+                    BOOL_HEADERS.put(boolHeaderName, Boolean.parseBoolean(properties.getProperty(boolHeaderName)));
+                }
             }
 
             List<ProducerThread> threads = new ArrayList<>();
@@ -123,7 +179,7 @@ public class ThreadedProducer {
 
                 for (int i = 0; i < NUM_THREADS_PER_DESTINATION; i++) {
 
-                    ProducerThread producerThread = new ProducerThread(factory, destination, CLIENT_PREFIX, NUM_MESSAGES_TO_BE_SENT_PER_DESTINATION / NUM_THREADS_PER_DESTINATION, MESSAGE_DELAY_MILLISECONDS, MESSAGE_TIME_TO_LIVE_MILLISECONDS, i + 1, MESSAGE_LENGTH, TRANSACTED, PERSISTENT, BODY, PROPS, HEADERS);
+                    ProducerThread producerThread = new ProducerThread(factory, destination, CLIENT_PREFIX, NUM_MESSAGES_TO_BE_SENT_PER_DESTINATION / NUM_THREADS_PER_DESTINATION, MESSAGE_DELAY_MILLISECONDS, MESSAGE_TIME_TO_LIVE_MILLISECONDS, i + 1, MESSAGE_LENGTH, MESSAGE_LENGTH_FIXED, TRANSACTED, PERSISTENT, DYNAMIC, BODY, STRING_HEADERS, INT_HEADERS, LONG_HEADERS, DBL_HEADERS, BOOL_HEADERS);
                     producerThread.start();
                     threads.add(producerThread);
                 }

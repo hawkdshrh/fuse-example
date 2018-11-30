@@ -34,16 +34,21 @@ public class ProducerThread extends Thread {
     private final int delay;
     private final int threadNum;
     private final int messageLength;
-    private final long ttl;    
+    private final long ttl;
+    private final boolean messageLengthFixed;
     private final boolean transacted;
     private final boolean persistent;
+    private final boolean dynamic;
     private boolean isDone = false;
     private final String messageBody;
-    private final Map<String, String> additionalHeaders;
-    private final Map<String, String> additionalProperties;
+    private final Map<String, String> additionalStringHeaders;
+    private final Map<String, Integer> additionalIntHeaders;
+    private final Map<String, Long> additionalLongHeaders;
+    private final Map<String, Double> additionalDblHeaders;
+    private final Map<String, Boolean> additionalBoolHeaders;
     private static final Logger LOG = LoggerFactory.getLogger(ProducerThread.class);
 
-    public ProducerThread(ConnectionFactory factory, Destination destination, String clientPrefix, int iterations, int delay, long ttl, int threadNum, int messageLength, boolean transacted, boolean persistent, String messageBody, Map additionalProperties, Map additionalHeaders) {
+    public ProducerThread(ConnectionFactory factory, Destination destination, String clientPrefix, int iterations, int delay, long ttl, int threadNum, int messageLength, boolean messageLengthFixed, boolean transacted, boolean persistent, boolean dynamic, String messageBody, Map stringHeaders, Map intHeaders, Map longHeaders, Map dblHeaders, Map boolHeaders) {
         this.factory = factory;
         this.destination = destination;
         this.clientPrefix = clientPrefix;
@@ -52,12 +57,16 @@ public class ProducerThread extends Thread {
         this.ttl = ttl;
         this.threadNum = threadNum;
         this.messageLength = messageLength;
+        this.messageLengthFixed = messageLengthFixed;
         this.transacted = transacted;
         this.persistent = persistent;
+        this.dynamic = dynamic;
         this.messageBody = messageBody;
-        this.additionalProperties = additionalProperties;
-        this.additionalHeaders = additionalHeaders;
-
+        this.additionalStringHeaders = stringHeaders;
+        this.additionalIntHeaders = intHeaders;
+        this.additionalLongHeaders = longHeaders;
+        this.additionalDblHeaders = dblHeaders;
+        this.additionalBoolHeaders = boolHeaders;
     }
 
     @Override
@@ -72,15 +81,21 @@ public class ProducerThread extends Thread {
             } else {
                 session = connection.createSession(transacted, Session.AUTO_ACKNOWLEDGE);
             }
-            producer = session.createProducer(destination);
+
+            if (dynamic) {
+                producer = session.createProducer(null);
+            } else {
+                producer = session.createProducer(destination);
+            }
             producer.setTimeToLive(ttl);
-            if(persistent) {
+            if (persistent) {
                 producer.setDeliveryMode(DeliveryMode.PERSISTENT);
             } else {
                 producer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
             }
             String padding = null;
-            if (messageBody == null) {
+
+            if (messageBody == null && messageLengthFixed) {
                 StringBuilder builder = new StringBuilder();
                 Random random = new Random();
                 for (int j = 0; j < messageLength; j++) {
@@ -99,13 +114,32 @@ public class ProducerThread extends Thread {
                     } else {
                         message = session.createTextMessage("Sending message " + i + " at " + System.currentTimeMillis() + ": " + padding + ": to " + producer.getDestination() + " from " + threadNum);
                     }
-                    for (String key : additionalProperties.keySet()) {
-                        message.setStringProperty(key, additionalProperties.get(key));
+
+                    for (String key : additionalStringHeaders.keySet()) {
+                        message.setStringProperty(key, additionalStringHeaders.get(key));
                     }
-                    for (String key : additionalHeaders.keySet()) {
-                        message.setStringProperty(key, additionalHeaders.get(key));
+
+                    for (String key : additionalIntHeaders.keySet()) {
+                        message.setIntProperty(key, additionalIntHeaders.get(key));
                     }
-                    producer.send(message);
+
+                    for (String key : additionalLongHeaders.keySet()) {
+                        message.setLongProperty(key, additionalLongHeaders.get(key));
+                    }
+
+                    for (String key : additionalDblHeaders.keySet()) {
+                        message.setDoubleProperty(key, additionalDblHeaders.get(key));
+                    }
+
+                    for (String key : additionalBoolHeaders.keySet()) {
+                        message.setBooleanProperty(key, additionalBoolHeaders.get(key));
+                    }
+
+                    if (dynamic) {
+                        producer.send(destination, message);
+                    } else {
+                        producer.send(message);
+                    }
                     if (transacted) {
                         session.commit();
                     }
@@ -122,7 +156,7 @@ public class ProducerThread extends Thread {
                     }
                 }
             }
-            producer.close();
+            //producer.close();
             isDone = true;
         } catch (JMSException eJMS) {
             LOG.error("Caught JMSException: ", eJMS);
