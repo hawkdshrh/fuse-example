@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one or more
+    contributor license agreements.  See the NOTICE file distributed with
+    this work for additional information regarding copyright ownership.
+    The ASF licenses this file to You under the Apache License, Version 2.0
+    (the "License"); you may not use this file except in compliance with
+    the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+-->
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:camel="http://camel.apache.org/schema/blueprint"
+           xmlns:camelcxf="http://camel.apache.org/schema/blueprint/cxf"
+           xsi:schemaLocation="
+             http://www.osgi.org/xmlns/blueprint/v1.0.0 http://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd
+             http://cxf.apache.org/blueprint/jaxws http://cxf.apache.org/schemas/blueprint/jaxws.xsd
+             http://cxf.apache.org/blueprint/core http://cxf.apache.org/schemas/blueprint/core.xsd
+             ">
+           
+    <!--camelcxf:cxfEndpoint id="proxy"-->
+    <camelcxf:cxfEndpoint id="reportIncident"
+                    address="http://localhost:9001/incident"
+                    wsdlURL="META-INF/wsdl/report_incident.wsdl"
+                    serviceClass="org.apache.camel.example.reportincident.ReportIncidentEndpoint"
+                    endpointName="s:ReportIncidentService"
+                    serviceName="s:ReportIncidentEndpointService"
+                    xmlns:s="http://reportincident.example.camel.apache.org">
+        <camelcxf:inInterceptors>
+            <bean class="org.apache.cxf.interceptor.LoggingInInterceptor"/>
+            <bean class="org.apache.cxf.ws.security.wss4j.WSS4JInInterceptor">
+                <property name="properties">
+                    <map>
+                        <entry key="action" value="Encrypt Signature Timestamp"/>
+                        <entry key="signaturePropFile" value="etc/Server_SignVerf.properties"/>
+                        <entry key="decryptionPropFile" value="etc/Server_Decrypt.properties"/>
+                        <entry key="signatureKeyIdentifier" value="DirectReference"/>
+                        <entry key="passwordCallbackClass" value="org.jboss.fuse.samples.callback.ServerUTPasswordCallback"/>
+                    </map>
+                </property>
+            </bean>
+            <bean class="org.apache.cxf.ws.security.wss4j.DefaultCryptoCoverageChecker">
+                <property name="signBody">
+                    <value type="java.lang.Boolean">true</value>
+                </property>
+            </bean>
+        </camelcxf:inInterceptors>
+        <camelcxf:outInterceptors>          
+            <bean class="org.apache.cxf.interceptor.LoggingOutInterceptor"/>
+            <bean class="org.apache.cxf.ws.security.wss4j.WSS4JOutInterceptor">
+                <property name="properties">
+                    <map>
+                        <entry key="action" value="Signature"/>
+                        <entry key="user" value="serverx509v1"/>
+                        <entry key="passwordCallbackClass" value="org.jboss.fuse.samples.callback.ServerUTPasswordCallback"/>
+                        <entry key="signaturePropFile" value="etc/Server_Decrypt.properties"/>
+                        <entry key="signatureKeyIdentifier" value="DirectReference"/>
+                        <entry key="signatureParts" value="{Element}{http://schemas.xmlsoap.org/soap/envelope/}Body"/>
+                    </map>
+                </property>
+            </bean>
+        </camelcxf:outInterceptors>
+        <camelcxf:properties>
+	        <entry key="dataFormat" value="PAYLOAD"/>
+        </camelcxf:properties>
+    </camelcxf:cxfEndpoint>
+
+<!--
+    <camelcxf:cxfEndpoint id="reportIncident"
+                    address="http://localhost:9002/incident"
+                    wsdlURL="META-INF/wsdl/report_incident.wsdl"
+                    serviceClass="org.apache.camel.example.reportincident.ReportIncidentEndpoint"
+                    endpointName="s:ReportIncidentService"
+                    serviceName="s:ReportIncidentEndpointService"
+                    xmlns:s="http://reportincident.example.camel.apache.org">
+        <camelcxf:inInterceptors>
+            <bean class="org.apache.cxf.interceptor.LoggingInInterceptor"/>
+            <bean class="org.apache.cxf.ws.security.wss4j.WSS4JInInterceptor">
+                <property name="properties">
+                    <map>
+                        <entry key="action" value="Signature"/>
+                        <entry key="signaturePropFile" value="etc/Client_Encrypt.properties"/>
+                        <entry key="signatureKeyIdentifier" value="DirectReference"/>
+                    </map>
+                </property>
+            </bean>
+            <bean class="org.apache.cxf.ws.security.wss4j.DefaultCryptoCoverageChecker">
+                <property name="signBody">
+                    <value type="java.lang.Boolean">true</value>
+                </property>
+            </bean>
+        </camelcxf:inInterceptors>
+        <camelcxf:outInterceptors>          
+            <bean class="org.apache.cxf.interceptor.LoggingOutInterceptor"/>
+            <bean class="org.apache.cxf.ws.security.wss4j.WSS4JOutInterceptor">
+                <property name="properties">
+                    <map>
+                        <entry key="action" value="Signature"/>
+                        <entry key="user" value="clientx509v1"/>
+                        <entry key="passwordCallbackClass" value="org.jboss.fuse.samples.callback.ClientUTPasswordCallback"/>
+                        <entry key="signaturePropFile" value="etc/Client_Sign.properties"/>
+                        <entry key="signatureKeyIdentifier" value="DirectReference"/>
+                        <entry key="signatureParts" value="{Element}{http://schemas.xmlsoap.org/soap/envelope/}Body"/>
+                    </map>
+                </property>
+            </bean>
+        </camelcxf:outInterceptors>
+        <camelcxf:properties>
+	        <entry key="dataFormat" value="CXF_MESSAGE"/>
+        </camelcxf:properties>
+    </camelcxf:cxfEndpoint>
+-->
+
+    <bean id="shutdown" class="org.apache.camel.impl.DefaultShutdownStrategy">  
+        <property name="timeout" value="10"/>
+    </bean> 
+    
+    <!--bean id="reportIncidentProcessor" class="org.jboss.fuse.samples.processor.ReportIncidentProcessor"/-->
+    
+    <bean id="rspEnhanceProcessor" class="org.jboss.fuse.samples.processor.RspEnhanceProcessor"/>
+
+    <camelContext id="camel" xmlns="http://camel.apache.org/schema/blueprint">
+        <route>
+            <!--from uri="cxf:bean:proxy"/-->
+            <from uri="cxf:bean:reportIncident"/>
+            <process ref="rspEnhanceProcessor" />
+            <!--log message="IN body: ${body}"/-->
+            <!--log message="OUT body: ${out.body}"/-->
+        </route>
+    </camelContext>
+
+</blueprint>

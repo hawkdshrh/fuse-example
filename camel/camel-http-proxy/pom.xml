@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+	
+    <groupId>com.redhat.gss.example.fuse</groupId>
+    <artifactId>camel-http-proxy</artifactId>
+    <packaging>bundle</packaging>
+    <version>1.0.0</version>
+
+    <name>${project.artifactId}</name>
+    
+    <properties>
+        <!-- Set up the dependincies for the fabric8 plugin to construct the 
+        Fabric8 profile for the application.  The fabric8.profile property
+        sets the profile name.  The parentProfiles property determines what 
+        profile this profile will inherit from (default, by default).  The
+        features property determines what features will be added to the 
+        profile.  The bundles property sets the bundles that will be added
+        to the profile.  Here we are just adding the artifact bundle from this
+        project -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <jboss.fuse.bom.version>6.3.0.redhat-347</jboss.fuse.bom.version>
+        <fabric.version>1.2.0.redhat-630347</fabric.version>
+        <fabric8.bom.version>1.2.0.redhat-630347</fabric8.bom.version>
+        <!-- fabric8 deploy profile configuration -->
+        <fabric8.profile>camel-http-intrcpt</fabric8.profile>
+        <fabric8.features>camel camel-blueprint camel-http camel-jetty</fabric8.features>
+        <fabric8.bundles>mvn:${project.groupId}/${project.artifactId}/${project.version}</fabric8.bundles>
+    </properties>
+	
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.jboss.fuse.bom</groupId>
+                <artifactId>jboss-fuse-parent</artifactId>
+                <version>${jboss.fuse.bom.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+    
+    <dependencies>
+                       
+        <dependency>
+            <groupId>org.apache.camel</groupId>
+            <artifactId>camel-blueprint</artifactId>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.apache.camel</groupId>
+            <artifactId>camel-core</artifactId>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.apache.camel</groupId>
+            <artifactId>camel-http</artifactId>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.apache.camel</groupId>
+            <artifactId>camel-jetty8</artifactId>
+        </dependency>
+        
+        <dependency>
+            <groupId>io.fabric8</groupId>
+            <artifactId>fabric-camel</artifactId>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.karaf.shell</groupId>
+                    <artifactId>org.apache.karaf.shell.console</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        
+        <!-- logging -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+    
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+        </dependency>
+    
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+        </dependency>
+            
+    </dependencies>
+
+    <build>
+        <defaultGoal>install</defaultGoal>
+        
+        <pluginManagement>
+
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.karaf.tooling</groupId>
+                    <artifactId>karaf-maven-plugin</artifactId>
+                    <extensions>true</extensions>
+                </plugin>
+            </plugins>
+
+        </pluginManagement>
+
+        <plugins>
+            
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>2.5.1</version>
+                <configuration>
+                    <source>1.7</source>
+                    <target>1.7</target>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>2.4.3</version>
+                <configuration>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <version>2.3.7</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <instructions>
+                        <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
+                        <Import-Package>
+                            *
+                        </Import-Package>
+                    </instructions>
+                </configuration>
+            </plugin>
+            
+            <plugin>
+                <!--
+                  Add the fabric8 plugin to deploy the profile to fabric
+                  this plugin will use the fabric.* properties to configure its behaviour
+                  see the Properties section here: http://fabric8.io/gitbook/mavenPlugin.html
+                -->
+                <groupId>io.fabric8</groupId>
+                <artifactId>fabric8-maven-plugin</artifactId>
+                <version>1.2.0.redhat-621216</version>
+            </plugin>
+            
+        </plugins>
+        
+    </build>
+    
+</project>

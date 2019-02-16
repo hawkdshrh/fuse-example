@@ -1,0 +1,12 @@
+Manifest-Version: 1.0
+Bnd-LastModified: 1503751362680
+Build-Jdk: 1.8.0_131
+Built-By: dhawkins
+Bundle-ManifestVersion: 2
+Bundle-Name: WSS4J Fragment Bundle for Resources
+Bundle-SymbolicName: org.jboss.fuse.samples.fragment-bundle
+Bundle-Version: 1.0.0
+Created-By: Apache Maven Bundle Plugin
+Fragment-Host: org.apache.wss4j.wss4j-ws-security-common
+Private-Package: etc,keystore
+Tool: Bnd-2.3.0.201405100607

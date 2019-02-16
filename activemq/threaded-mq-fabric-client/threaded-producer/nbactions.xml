@@ -10,7 +10,7 @@
                 <goal>org.codehaus.mojo:exec-maven-plugin:1.2.1:exec</goal>
             </goals>
             <properties>
-                <exec.args>-Dzookeeper.url=nodex.redhat.com:2181 -Dzookeeper.password=admin -Djava.net.preferIPv4Stack=true -Djavax.net.ssl.keyStore=server.chain.pkcs12 -Djavax.net.ssl.keyStoreType=PKCS12 -Djavax.net.ssl.keyStorePassword=changepass -Djavax.net.ssl.trustStore=server.chain.pkcs12 -Djavax.net.ssl.trustStoreType=PKCS12 -Djavax.net.ssl.trustStorePassword=changepass -classpath %classpath org.fusebyexample.mq_fabric_client.simple.ThreadedProducer</exec.args>
+                <exec.args>-Dzookeeper.url=nodex.redhat.com:2181 -Dzookeeper.password=admin -Djava.net.preferIPv4Stack=true -Djavax.net.ssl.keyStore=/opt/fuse/keystore/client.chain.pkcs12 -Djavax.net.ssl.keyStoreType=PKCS12 -Djavax.net.ssl.keyStorePassword=changepass -Djavax.net.ssl.trustStore=/opt/fuse/keystore/server.chain.pkcs12 -Djavax.net.ssl.trustStoreType=PKCS12 -Djavax.net.ssl.trustStorePassword=changepass -classpath %classpath org.fusebyexample.mq_fabric_client.simple.ThreadedProducer</exec.args>
                 <exec.executable>java</exec.executable>
             </properties>
         </action>

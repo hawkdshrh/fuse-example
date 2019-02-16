@@ -8,6 +8,8 @@
     <artifactId>customer-service</artifactId>
     <packaging>bundle</packaging>
     <version>1.0.0</version>
+    
+    <name>${project.artifactId}</name>
   
     <properties>
         <!-- Set up the dependincies for the fabric8 plugin to construct the 
@@ -19,9 +21,9 @@
         to the profile.  Here we are just adding the artifact bundle from this
         project -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <jboss.fuse.bom.version>6.2.1.redhat-084</jboss.fuse.bom.version>
-        <fabric.version>1.2.0.redhat-621084</fabric.version>
-        <fabric8.bom.version>1.2.0.redhat-621084</fabric8.bom.version>
+        <jboss.fuse.bom.version>6.2.1.redhat-216</jboss.fuse.bom.version>
+        <fabric.version>1.2.0.redhat-621216</fabric.version>
+        <fabric8.bom.version>1.2.0.redhat-621216</fabric8.bom.version>
         <!-- fabric8 deploy profile configuration -->
         <fabric8.profile>redhat-example-customer-service</fabric8.profile>
         <fabric8.parentProfiles>feature-camel</fabric8.parentProfiles>
@@ -98,7 +100,6 @@
         <dependency>
             <groupId>org.apache.servicemix.bundles</groupId>
             <artifactId>org.apache.servicemix.bundles.swagger-jaxrs</artifactId>
-            <version>1.3.12_1</version>
         </dependency>	
     </dependencies>
 
@@ -118,14 +119,6 @@
 
         <plugins>
             <plugin>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>1.7</source>
-                    <target>1.7</target>
-                </configuration>
-                <version>3.0</version>
-            </plugin>
-            <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
                 <version>2.4.0</version>
@@ -139,6 +132,7 @@
                     </instructions>
                 </configuration>
             </plugin>
+            
             <plugin>
                 <!--
                   Add the fabric8 plugin to deploy the profile to fabric
@@ -147,7 +141,7 @@
                 -->
                 <groupId>io.fabric8</groupId>
                 <artifactId>fabric8-maven-plugin</artifactId>
-                <version>${fabric.version}</version>
+                <version>1.2.0.redhat-621216</version>
             </plugin>
         </plugins>
 

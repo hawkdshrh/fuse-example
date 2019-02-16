@@ -9,27 +9,38 @@
     http://camel.apache.org/schema/blueprint http://camel.apache.org/schema/blueprint/camel-blueprint.xsd">
 
     <!-- Property Placeholder -->
-    <cm:property-placeholder persistent-id="drain.test" update-strategy="none" xmlns="http://aries.apache.org/blueprint/xmlns/blueprint-cm/v1.1.0" />
+    <cm:property-placeholder persistent-id="message.mover" update-strategy="none" xmlns="http://aries.apache.org/blueprint/xmlns/blueprint-cm/v1.1.0" />
     
-    <bean id="jmsQueueDrainRouteBuilder" class="com.redhat.example.route.JmsQueueDrainRouteBuilder">
-        <property name="autoStartup" value="${jmsQueueDrainAutoStart}" />
-        <property name="jmsComponent" value="source" />
+    <bean id="jmsMessageMoverRouteBuilder" class="com.redhat.example.route.JmsMessageMoverRouteBuilder">
+        <property name="autoStartup" value="${jmsMessageMoverAutoStart}" />
+        <property name="srcJmsComponent" value="source" />
+        <property name="destJmsComponent" value="dest" />
         <property name="jmsSourceDestinations" value="${jmsSourceDestinations}" />
-        <property name="maximumRedeliveries" value="${jmsQueueDrainMaximumRedeliveries}" />
+        <property name="maximumRedeliveries" value="${jmsMessageMoverMaximumRedeliveries}" />
     </bean>
     
     <bean id="source" class="org.apache.activemq.camel.component.ActiveMQComponent">
         <property name="connectionFactory">
             <bean class="org.apache.activemq.ActiveMQConnectionFactory">
-                <argument value="${amq.url}"/>
+                <argument value="${amq.src.url}"/>
                 <property name="userName" value="${amq.username}" />
                 <property name="password" value="${amq.password}" />
             </bean>
         </property>
     </bean> 
-
-    <camelContext id="jmsQueueDrainRouteBuilder_context" xmlns="http://camel.apache.org/schema/blueprint"  useMDCLogging="true">
-        <routeBuilder ref="jmsQueueDrainRouteBuilder" />
+    
+    <bean id="dest" class="org.apache.activemq.camel.component.ActiveMQComponent">
+        <property name="connectionFactory">
+            <bean class="org.apache.activemq.ActiveMQConnectionFactory">
+                <argument value="${amq.dest.url}"/>
+                <property name="userName" value="${amq.username}" />
+                <property name="password" value="${amq.password}" />
+            </bean>
+        </property>
+    </bean> 
+    
+    <camelContext id="jmsMessageMoverRouteBuilder_context" xmlns="http://camel.apache.org/schema/blueprint"  useMDCLogging="true">
+        <routeBuilder ref="jmsMessageMoverRouteBuilder" />
     </camelContext>
     
 </blueprint>

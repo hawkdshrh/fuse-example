@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0" 
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+           xmlns:camel="http://camel.apache.org/schema/blueprint"
+           xmlns:cm="http://aries.apache.org/blueprint/xmlns/blueprint-cm/v1.1.0"
+           xsi:schemaLocation="
+    http://www.osgi.org/xmlns/blueprint/v1.0.0 http://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd
+    http://aries.apache.org/blueprint/xmlns/blueprint-cm/v1.1.0 http://aries.apache.org/schemas/blueprint-cm/blueprint-cm-1.1.0.xsd
+    http://camel.apache.org/schema/blueprint http://camel.apache.org/schema/blueprint/camel-blueprint.xsd">
+
+    <!-- Property Placeholder -->
+    <cm:property-placeholder persistent-id="bridge" update-strategy="none" xmlns="http://aries.apache.org/blueprint/xmlns/blueprint-cm/v1.1.0" />
+    
+    <bean id="jmsBridgeRouteBuilder" class="com.redhat.example.route.JmsBridgeRouteBuilder">
+        <property name="autoStartup" value="${jmsBridgeAutoStart}" />
+        <property name="jmsSourceComponent" value="source" />
+        <property name="jmsSourceDestinations" value="${jmsSourceDestinations}" />
+        <property name="jmsSourceSelectors" value="${jmsSourceSelectors}" />
+        <property name="jmsDest1Component" value="dest1" />
+        <property name="jmsDest2Component" value="dest2" />
+        <property name="maximumRedeliveries" value="${jmsBridgeMaximumRedeliveries}" />
+    </bean>
+    
+    <bean id="source.activemqConnectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+        <property name="brokerURL" value="${jmsSource}"/>
+        <property name="userName" value="${jmsSourceUser}" />
+        <property name="password" value="${jmsSourcePassword}" />
+    </bean>
+
+    <bean id="source.pooledConnectionFactory" class="org.apache.activemq.pool.PooledConnectionFactory">
+        <property name="maxConnections" value="${jmsSourceConnections}"/>
+        <property name="connectionFactory" ref="source.activemqConnectionFactory"/>
+    </bean>
+
+    <bean id="source.jmsTransactionManager" class="org.springframework.jms.connection.JmsTransactionManager">
+        <property name="connectionFactory" ref="source.pooledConnectionFactory"/>
+    </bean>
+    
+    <bean id="source.jmsConfig" class="org.apache.camel.component.jms.JmsConfiguration">
+        <property name="connectionFactory" ref="source.pooledConnectionFactory"/>
+        <property name="transactionManager" ref="source.jmsTransactionManager"/>
+        <property name="transacted" value="true"/>
+        <property name="cacheLevelName" value="CACHE_CONSUMER" />
+    </bean>
+
+    <bean id="source" class="org.apache.activemq.camel.component.ActiveMQComponent">
+        <property name="configuration" ref="source.jmsConfig" />
+        <property name="concurrentConsumers" value="${jmsSourceConsumers}" />
+    </bean>
+    
+    <bean id="dest1.activemqConnectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+        <property name="brokerURL" value="${jmsDest1}"/>
+        <property name="userName" value="${jmsDest1User}" />
+        <property name="password" value="${jmsDest1Password}" />
+    </bean>
+
+    <bean id="dest1.pooledConnectionFactory" class="org.apache.activemq.pool.PooledConnectionFactory">
+        <property name="maxConnections" value="${jmsDest1Connections}"/>
+        <property name="connectionFactory" ref="dest1.activemqConnectionFactory"/>
+    </bean>
+
+    <bean id="dest1.jmsTransactionManager" class="org.springframework.jms.connection.JmsTransactionManager">
+        <property name="connectionFactory" ref="dest1.pooledConnectionFactory"/>
+    </bean>
+    
+    <bean id="dest1.jmsConfig" class="org.apache.camel.component.jms.JmsConfiguration">
+        <property name="connectionFactory" ref="dest1.pooledConnectionFactory"/>
+        <property name="transactionManager" ref="dest1.jmsTransactionManager"/>
+        <property name="transacted" value="true"/>
+        <property name="cacheLevelName" value="CACHE_CONSUMER" />
+    </bean>
+
+    <bean id="dest1" class="org.apache.activemq.camel.component.ActiveMQComponent">
+        <property name="configuration" ref="dest1.jmsConfig" />
+    </bean>
+    
+    <bean id="dest2.activemqConnectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+        <property name="brokerURL" value="${jmsDest2}"/>
+        <property name="userName" value="${jmsDest2User}" />
+        <property name="password" value="${jmsDest2Password}" />
+    </bean>
+
+    <bean id="dest2.pooledConnectionFactory" class="org.apache.activemq.pool.PooledConnectionFactory">
+        <property name="maxConnections" value="${jmsDest2Connections}"/>
+        <property name="connectionFactory" ref="dest2.activemqConnectionFactory"/>
+    </bean>
+
+    <bean id="dest2.jmsTransactionManager" class="org.springframework.jms.connection.JmsTransactionManager">
+        <property name="connectionFactory" ref="dest2.pooledConnectionFactory"/>
+    </bean>
+    
+    <bean id="dest2.jmsConfig" class="org.apache.camel.component.jms.JmsConfiguration">
+        <property name="connectionFactory" ref="dest2.pooledConnectionFactory"/>
+        <property name="transactionManager" ref="dest2.jmsTransactionManager"/>
+        <property name="transacted" value="true"/>
+        <property name="cacheLevelName" value="CACHE_CONSUMER" />
+    </bean>
+
+    <bean id="dest2" class="org.apache.activemq.camel.component.ActiveMQComponent">
+        <property name="configuration" ref="dest2.jmsConfig" />
+    </bean>
+    
+    <camelContext id="jmsBridgeRouteBuilder_context" xmlns="http://camel.apache.org/schema/blueprint"  useMDCLogging="true">
+        <routeBuilder ref="jmsBridgeRouteBuilder" />
+    </camelContext>
+    
+</blueprint>

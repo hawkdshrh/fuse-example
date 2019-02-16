@@ -1,0 +1,12 @@
+org/apache/camel/example/reportincident/ReportIncidentEndpointService.class
+org/jboss/fuse/samples/processor/ReportIncidentProcessor$1.class
+org/apache/camel/example/reportincident/InputReportIncident.class
+org/jboss/fuse/samples/callback/ClientUTPasswordCallback.class
+org/jboss/fuse/samples/processor/RspEnhanceProcessor.class
+org/apache/camel/example/reportincident/OutputReportIncident.class
+org/apache/camel/example/reportincident/ReportIncidentEndpoint.class
+org/apache/camel/example/reportincident/ObjectFactory.class
+org/jboss/fuse/samples/processor/RspEnhanceProcessor$1.class
+org/jboss/fuse/samples/processor/ReportIncidentProcessor.class
+org/apache/camel/example/reportincident/package-info.class
+org/jboss/fuse/samples/callback/ServerUTPasswordCallback.class

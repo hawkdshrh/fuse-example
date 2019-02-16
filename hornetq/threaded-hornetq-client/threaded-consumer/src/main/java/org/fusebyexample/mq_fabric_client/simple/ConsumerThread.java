@@ -65,23 +65,22 @@ public class ConsumerThread extends Thread {
                 timer.schedule(new CommitTask(), transactionDelay);
             }
             connection = factory.createConnection(user, password);
-            //connection.setClientID(clientPrefix + "." + destination + "-" + Integer.toString(this.threadNum));
             connection.setClientID(clientPrefix + "." + destination + "-" + Integer.toString(this.threadNum) + "-" + Long.toString(System.currentTimeMillis()));
             connection.start();
-            LOG.info("Started consumer: " + connection.getClientID());
+            LOG.info("Started connection: " + connection.getClientID());
             if (transacted) {
                 session = connection.createSession(transacted, Session.SESSION_TRANSACTED);
             } else {
                 session = connection.createSession(transacted, Session.AUTO_ACKNOWLEDGE);
             }
-
+            LOG.info("Starting consumer: " + connection.getClientID());
             if (selector != null && !selector.isEmpty()) {
                 LOG.info("With selector: " + selector);
                 consumer = session.createConsumer(destination, selector);
             } else {
                 consumer = session.createConsumer(destination);
             }
-
+            
             boolean finished = false;
             int msgsRecd = 0;
             while (!finished) {
@@ -100,7 +99,6 @@ public class ConsumerThread extends Thread {
                             LOG.info("Thread {}: Rolling back message {}.", this.threadNum, message.getJMSMessageID());
                             session.rollback();
                         }
-
                     }
 
                 } else {

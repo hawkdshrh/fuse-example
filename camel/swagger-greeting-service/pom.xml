@@ -18,7 +18,7 @@
         <!-- fabric8 deploy profile configuration -->
         <fabric8.profile>redhat-example-greet</fabric8.profile>
         <fabric8.parentProfiles>feature-camel</fabric8.parentProfiles>
-        <fabric8.features>camel-cxf camel-swagger fabric-cxf fabric-hawtio-swagger</fabric8.features>
+        <fabric8.features>camel-cxf camel-swagger fabric-cxf fabric-cxf-registry fabric-hawtio-swagger</fabric8.features>
         <fabric8.bundles>mvn:${project.groupId}/${project.artifactId}/${project.version}</fabric8.bundles>
     </properties>
 

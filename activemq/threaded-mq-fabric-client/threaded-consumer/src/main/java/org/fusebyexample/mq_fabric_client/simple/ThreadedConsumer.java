@@ -54,6 +54,7 @@ public class ThreadedConsumer {
     private static boolean STATS_ENABLED = false;
     private static boolean OPTIMIZE_ACK = false;
     private static boolean BROWSE_ONLY = false;
+    private static boolean UNIQUE_CLIENT_ID = false;
     private static int CONNECTION_CLOSE_TIMEOUT = 15000;
     private static String SELECTOR;
 
@@ -66,7 +67,7 @@ public class ThreadedConsumer {
             LOG.info("Overriding jndi brokerUrl, now using: {}", brokerUrl);
             LOG.info("******************************");
         }
-        //Connection connection = null;
+
         try {
 
             Properties properties = new Properties();
@@ -95,6 +96,7 @@ public class ThreadedConsumer {
             STATS_ENABLED = Boolean.parseBoolean(properties.getProperty("stats.enabled"));
             OPTIMIZE_ACK = Boolean.parseBoolean(properties.getProperty("optimize.ack"));
             BROWSE_ONLY = Boolean.parseBoolean(properties.getProperty("is.browser"));
+            UNIQUE_CLIENT_ID = Boolean.parseBoolean(properties.getProperty("use.unique.clientid"));
             CONNECTION_CLOSE_TIMEOUT = Integer.parseInt(properties.getProperty("connection.close.timeout"));
             SELECTOR = properties.getProperty("message.selector");
 
@@ -134,11 +136,11 @@ public class ThreadedConsumer {
 
                 for (int i = 0; i < NUM_THREADS_PER_DESTINATION; i++) {
                     if (!BROWSE_ONLY) {
-                        ConsumerThread consumerThread = new ConsumerThread(factory, destination, i + 1, CLIENT_PREFIX, MESSAGE_TIMEOUT_MILLISECONDS, SELECTOR, SESSION_TRANSACTED, TRANSACTION_IS_BATCH, TRANSACTION_DELAY, READ_DELAY);
+                        ConsumerThread consumerThread = new ConsumerThread(factory, destination, i + 1, CLIENT_PREFIX, MESSAGE_TIMEOUT_MILLISECONDS, SELECTOR, SESSION_TRANSACTED, TRANSACTION_IS_BATCH, TRANSACTION_DELAY, READ_DELAY, UNIQUE_CLIENT_ID);
                         consumerThread.start();
                         threads.add(consumerThread);
                     } else {
-                        BrowserThread browserThread = new BrowserThread(factory, destination, i + 1, CLIENT_PREFIX, MESSAGE_TIMEOUT_MILLISECONDS, SELECTOR, SESSION_TRANSACTED, TRANSACTION_IS_BATCH, TRANSACTION_DELAY, READ_DELAY);
+                        BrowserThread browserThread = new BrowserThread(factory, destination, i + 1, CLIENT_PREFIX, MESSAGE_TIMEOUT_MILLISECONDS, SELECTOR, SESSION_TRANSACTED, TRANSACTION_IS_BATCH, TRANSACTION_DELAY, READ_DELAY, UNIQUE_CLIENT_ID);
                         browserThread.start();
                         threads.add(browserThread);
                     }

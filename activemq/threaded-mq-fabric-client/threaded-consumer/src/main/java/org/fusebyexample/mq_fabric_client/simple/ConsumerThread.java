@@ -17,6 +17,7 @@ import javax.jms.Message;
 import javax.jms.MessageConsumer;
 import javax.jms.Session;
 import javax.jms.TransactionRolledBackException;
+import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.command.ActiveMQMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,17 +39,19 @@ public class ConsumerThread extends Thread {
     private final Destination destination;
     private final int messageTimeoutMs;
     private final boolean transactionIsBatch;
+    private final boolean uniqueClientId;
     private final long transactionDelay;
     private final long readDelay;
     private final Timer timer = new Timer();
     private final Executor executor = Executors.newCachedThreadPool();
     private Boolean isCommit = false;
 
+    private boolean connected = false;
     private boolean isDone = false;
 
     private static final Logger LOG = LoggerFactory.getLogger(ConsumerThread.class);
 
-    public ConsumerThread(ConnectionFactory factory, Destination destination, int threadNum, String clientPrefix, int messageTimeoutMs, String selector, boolean transacted, boolean transactionIsBatch, long transactionDelay, long readDelay) {
+    public ConsumerThread(ConnectionFactory factory, Destination destination, int threadNum, String clientPrefix, int messageTimeoutMs, String selector, boolean transacted, boolean transactionIsBatch, long transactionDelay, long readDelay, boolean uniqueClientId) {
         this.factory = factory;
         this.destination = destination;
         this.selector = selector;
@@ -59,26 +62,30 @@ public class ConsumerThread extends Thread {
         this.transactionIsBatch = transactionIsBatch;
         this.transactionDelay = transactionDelay;
         this.readDelay = readDelay;
+        this.uniqueClientId = uniqueClientId;
     }
 
     @Override
     public void run() {
 
-        boolean connected = false;
         int msgsRecd = 0;
 
         try {
 
             while (!isDone) {
 
-                while (!connected) {
+                while (!connected && !isDone) {
 
                     try {
 
                         connection = factory.createConnection();
-                        connection.setClientID(clientPrefix + "." + destination + "-" + Integer.toString(this.threadNum) + "-" + Long.toString(System.currentTimeMillis()));
+                        if (uniqueClientId) {
+                            connection.setClientID(clientPrefix + "." + destination + "-" + Integer.toString(this.threadNum) + "-" + Long.toString(System.currentTimeMillis()));
+                        } else {
+                            connection.setClientID(clientPrefix + "." + destination + "-" + Integer.toString(this.threadNum));
+                        }
                         connection.start();
-                        LOG.info("Started consumer: " + connection.getClientID());
+                        LOG.info("Started consumer: " + ((ActiveMQConnection)connection).getConnectionInfo().getConnectionId() + ":" + connection.getClientID());
                         if (transacted) {
                             session = connection.createSession(transacted, Session.SESSION_TRANSACTED);
                         } else {
@@ -122,7 +129,7 @@ public class ConsumerThread extends Thread {
                                 LOG.error("Error closing connection", e);
                             }
                         }
-                    } 
+                    }
                 }
 
                 try {
@@ -160,10 +167,34 @@ public class ConsumerThread extends Thread {
                                 session.rollback();
                             }
                         }
-
                     }
                 } catch (JMSException eJMS) {
                     LOG.error("Caught JMSException: ", eJMS);
+                    if (consumer != null) {
+                        try {
+                            LOG.info("Closing consumer: {}", this.threadNum);
+                            consumer.close();
+                        } catch (JMSException exC) {
+                            LOG.error("Caught JMSException: ", exC);
+                        }
+                    }
+                    if (session != null) {
+                        try {
+                            LOG.info("Closing session: {}", this.threadNum);
+                            session.close();
+                        } catch (JMSException exS) {
+                            LOG.error("Caught JMSException: ", exS);
+                        }
+                    }
+                    if (connection != null) {
+                        try {
+                            LOG.info("Closing connection: {}", this.threadNum);
+                            connection.close();
+                        } catch (JMSException e) {
+                            LOG.error("Error closing connection", e);
+                        }
+                    }
+                    connected = false;
                 } catch (InterruptedException eI) {
                     LOG.error("Caught InterruptedException: ", eI);
                     isDone = true;

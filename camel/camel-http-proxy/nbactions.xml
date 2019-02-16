@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<actions>
+        <action>
+            <actionName>CUSTOM-Fabric8 Deploy</actionName>
+            <displayName>Fabric8 Deploy</displayName>
+            <goals>
+                <goal>fabric8:deploy</goal>
+                <goal>-Dfabric8.jolokiaUrl=http://nodex.redhat.com:8181/jolokia</goal>
+                <goal>-Dfabric8.user=admin</goal>
+                <goal>-Dfabric8.password=admin</goal>
+                <goal>-Dfabric8.profileVersion=1.0</goal>
+                <goal>-DskipTests</goal>
+            </goals>
+        </action>
+    </actions>

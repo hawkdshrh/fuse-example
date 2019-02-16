@@ -20,6 +20,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -36,6 +37,8 @@ public class ThreadedProducer {
 
     private static final Logger LOG = LoggerFactory.getLogger(ThreadedProducer.class);
 
+    private static String INITIAL_CONTEXT_FACTORY = "org.apache.activemq.jndi.ActiveMQInitialContextFactory";
+    private static String NAMING_PROVIDER_URL;
     private static int MESSAGE_DELAY_MILLISECONDS = 1;
     private static long MESSAGE_TIME_TO_LIVE_MILLISECONDS = 0;
     private static int NUM_MESSAGES_TO_BE_SENT_PER_DESTINATION = 1;
@@ -77,11 +80,13 @@ public class ThreadedProducer {
             Properties properties = new Properties();
             try {
                 properties.load(new FileInputStream("jndi.properties"));
-            } catch (Exception ex) {
+            } catch (IOException ex) {
+                LOG.warn("jndi.properties not found, defaulting to packaged version.");
                 properties.load(ThreadedProducer.class.getResourceAsStream("/jndi.properties"));
             }
 
-            System.setProperty("java.naming.provider.url", properties.getProperty("java.naming.provider.url"));
+            INITIAL_CONTEXT_FACTORY = properties.getProperty("java.naming.factory.initial");
+            NAMING_PROVIDER_URL = properties.getProperty("java.naming.provider.url");
             MESSAGE_DELAY_MILLISECONDS = Integer.parseInt(properties.getProperty("message.delay.ms"));
             MESSAGE_TIME_TO_LIVE_MILLISECONDS = Integer.parseInt(properties.getProperty("message.ttl.ms"));
             NUM_MESSAGES_TO_BE_SENT_PER_DESTINATION = Integer.parseInt(properties.getProperty("num.messages.per.dest"));
@@ -96,6 +101,9 @@ public class ThreadedProducer {
             PERSISTENT = Boolean.parseBoolean(properties.getProperty("persistent"));
             DYNAMIC = Boolean.parseBoolean(properties.getProperty("dynamic"));
             BODY = properties.getProperty("body");
+            
+            System.setProperty("java.naming.factory.initial", INITIAL_CONTEXT_FACTORY);
+            System.setProperty("java.naming.provider.url", NAMING_PROVIDER_URL);            
 
             String destinationNameList = properties.getProperty(DESTINATIONS);
             String[] destinationNames = destinationNameList.split(",");
@@ -131,8 +139,14 @@ public class ThreadedProducer {
             }
 
             // JNDI lookup of JMS Connection Factory and JMS Destination
-            Context context = new InitialContext();
+            Hashtable env = new Hashtable();
+            for (String property : properties.stringPropertyNames()) {
+                env.put(property, properties.getProperty(property));
+            }
+
+            Context context = new InitialContext(env);
             ActiveMQConnectionFactory factory = (ActiveMQConnectionFactory) context.lookup(CONNECTION_FACTORY_NAME);
+            
             factory.setProducerWindowSize(PRODUCER_WINDOW_SIZE);
             factory.setAlwaysSyncSend(!PRODUCER_USE_ASYNC);
             factory.setUseAsyncSend(PRODUCER_USE_ASYNC);
