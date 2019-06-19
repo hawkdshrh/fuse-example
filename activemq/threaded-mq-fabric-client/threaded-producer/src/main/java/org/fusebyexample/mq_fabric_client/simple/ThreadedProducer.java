@@ -49,6 +49,7 @@ public class ThreadedProducer {
     private static boolean TRANSACTED = false;
     private static boolean PERSISTENT = true;
     private static boolean DYNAMIC = false;
+    private static boolean REPLYTO = false;
     private static int PRODUCER_WINDOW_SIZE = 1024000;
     private static String CONNECTION_FACTORY_NAME = "myJmsFactory";
     private static String CLIENT_PREFIX = "client";
@@ -100,6 +101,7 @@ public class ThreadedProducer {
             TRANSACTED = Boolean.parseBoolean(properties.getProperty("transacted"));
             PERSISTENT = Boolean.parseBoolean(properties.getProperty("persistent"));
             DYNAMIC = Boolean.parseBoolean(properties.getProperty("dynamic"));
+            REPLYTO = Boolean.parseBoolean(properties.getProperty("replyto"));
             BODY = properties.getProperty("body");
             
             System.setProperty("java.naming.factory.initial", INITIAL_CONTEXT_FACTORY);
@@ -193,7 +195,7 @@ public class ThreadedProducer {
 
                 for (int i = 0; i < NUM_THREADS_PER_DESTINATION; i++) {
 
-                    ProducerThread producerThread = new ProducerThread(factory, destination, CLIENT_PREFIX, NUM_MESSAGES_TO_BE_SENT_PER_DESTINATION / NUM_THREADS_PER_DESTINATION, MESSAGE_DELAY_MILLISECONDS, MESSAGE_TIME_TO_LIVE_MILLISECONDS, i + 1, MESSAGE_LENGTH, MESSAGE_LENGTH_FIXED, TRANSACTED, PERSISTENT, DYNAMIC, BODY, STRING_HEADERS, INT_HEADERS, LONG_HEADERS, DBL_HEADERS, BOOL_HEADERS);
+                    ProducerThread producerThread = new ProducerThread(factory, destination, CLIENT_PREFIX, NUM_MESSAGES_TO_BE_SENT_PER_DESTINATION / NUM_THREADS_PER_DESTINATION, MESSAGE_DELAY_MILLISECONDS, MESSAGE_TIME_TO_LIVE_MILLISECONDS, i + 1, MESSAGE_LENGTH, MESSAGE_LENGTH_FIXED, TRANSACTED, PERSISTENT, DYNAMIC, BODY, STRING_HEADERS, INT_HEADERS, LONG_HEADERS, DBL_HEADERS, BOOL_HEADERS, REPLYTO);
                     producerThread.start();
                     threads.add(producerThread);
                 }

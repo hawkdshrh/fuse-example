@@ -7,11 +7,15 @@ package org.fusebyexample.mq_fabric_client.simple;
 
 import java.util.Map;
 import java.util.Random;
+import java.util.logging.Level;
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.DeliveryMode;
 import javax.jms.Destination;
 import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.MessageConsumer;
+import javax.jms.MessageListener;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
 import javax.jms.TextMessage;
@@ -22,7 +26,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author dhawkins
  */
-public class ProducerThread extends Thread {
+public class ProducerThread extends Thread implements MessageListener {
 
     private Session session = null;
     private Connection connection = null;
@@ -39,6 +43,7 @@ public class ProducerThread extends Thread {
     private final boolean transacted;
     private final boolean persistent;
     private final boolean dynamic;
+    private final boolean replyTo;
     private boolean isDone = false;
     private final String messageBody;
     private final Map<String, String> additionalStringHeaders;
@@ -48,7 +53,7 @@ public class ProducerThread extends Thread {
     private final Map<String, Boolean> additionalBoolHeaders;
     private static final Logger LOG = LoggerFactory.getLogger(ProducerThread.class);
 
-    public ProducerThread(ConnectionFactory factory, Destination destination, String clientPrefix, int iterations, int delay, long ttl, int threadNum, int messageLength, boolean messageLengthFixed, boolean transacted, boolean persistent, boolean dynamic, String messageBody, Map stringHeaders, Map intHeaders, Map longHeaders, Map dblHeaders, Map boolHeaders) {
+    public ProducerThread(ConnectionFactory factory, Destination destination, String clientPrefix, int iterations, int delay, long ttl, int threadNum, int messageLength, boolean messageLengthFixed, boolean transacted, boolean persistent, boolean dynamic, String messageBody, Map stringHeaders, Map intHeaders, Map longHeaders, Map dblHeaders, Map boolHeaders, boolean replyTo) {
         this.factory = factory;
         this.destination = destination;
         this.clientPrefix = clientPrefix;
@@ -67,12 +72,16 @@ public class ProducerThread extends Thread {
         this.additionalLongHeaders = longHeaders;
         this.additionalDblHeaders = dblHeaders;
         this.additionalBoolHeaders = boolHeaders;
+        this.replyTo = replyTo;
     }
 
     @Override
     public void run() {
 
         try {
+            MessageConsumer responseConsumer = null;
+            Destination tempDest = null;
+             
             connection = factory.createConnection();
             connection.setClientID(clientPrefix + "." + destination + "-" + Integer.toString(threadNum));
             connection.start();
@@ -93,6 +102,13 @@ public class ProducerThread extends Thread {
             } else {
                 producer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
             }
+
+            if (replyTo) {
+                tempDest = session.createTemporaryQueue();
+                responseConsumer = session.createConsumer(tempDest);
+                responseConsumer.setMessageListener(this);
+            }
+
             String padding = null;
 
             if (messageBody == null && messageLengthFixed) {
@@ -113,6 +129,10 @@ public class ProducerThread extends Thread {
                         message = session.createTextMessage(messageBody);
                     } else {
                         message = session.createTextMessage("Sending message " + i + " at " + System.currentTimeMillis() + ": " + padding + ": to " + producer.getDestination() + " from " + threadNum);
+                    }
+                    
+                    if (replyTo) {
+                        message.setJMSReplyTo(tempDest);
                     }
 
                     for (String key : additionalStringHeaders.keySet()) {
@@ -156,10 +176,13 @@ public class ProducerThread extends Thread {
                     }
                 }
             }
+            Thread.sleep(30000);
             //producer.close();
             isDone = true;
         } catch (JMSException eJMS) {
             LOG.error("Caught JMSException: ", eJMS);
+        } catch (InterruptedException ex) {
+            java.util.logging.Logger.getLogger(ProducerThread.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
             if (session != null) {
                 try {
@@ -175,6 +198,20 @@ public class ProducerThread extends Thread {
                     LOG.error("Error closing connection", e);
                 }
             }
+        }
+    }
+    
+    @Override
+    public void onMessage(Message message) {
+        String messageText = null;
+        try {
+            if (message instanceof TextMessage) {
+                TextMessage textMessage = (TextMessage) message;
+                messageText = textMessage.getText();
+                LOG.info("messageText = " + messageText);
+            }
+        } catch (JMSException e) {
+            //Handle the exception appropriately
         }
     }
 

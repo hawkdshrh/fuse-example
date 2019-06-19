@@ -15,10 +15,12 @@ import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageConsumer;
+import javax.jms.MessageProducer;
 import javax.jms.Session;
 import javax.jms.TransactionRolledBackException;
 import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.command.ActiveMQMessage;
+import org.apache.activemq.command.ActiveMQTextMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +31,7 @@ import org.slf4j.LoggerFactory;
 public class ConsumerThread extends Thread {
 
     private Session session = null;
+    private Session replySession = null;
     private Boolean transacted = false;
     private Connection connection = null;
     private final String selector;
@@ -140,6 +143,19 @@ public class ConsumerThread extends Thread {
                         msgsRecd++;
                         LOG.info("Thread {}: {} : Got message {}; total: {} path: {}.", this.threadNum, System.currentTimeMillis(), message.getJMSMessageID(), msgsRecd, ((ActiveMQMessage) message).getBrokerPath());
 
+                        if (message.getJMSReplyTo() != null) {    
+                            replySession = connection.createSession(transacted, Session.AUTO_ACKNOWLEDGE);
+                            MessageProducer producer = replySession.createProducer(message.getJMSReplyTo());
+                            producer.setTimeToLive(1000);
+                            String response = "Received: " + message.getJMSMessageID();
+                            LOG.info("Sending Response: " + response);
+                            Message responseMsg = new ActiveMQTextMessage();
+                            ((ActiveMQTextMessage)responseMsg).setText(response);
+                            producer.send(responseMsg);
+                            producer.close(); 
+                            replySession.close();
+                            replySession = null;
+                        }
                         if (transacted && !transactionIsBatch) {
                             Thread.sleep(transactionDelay);
                             try {
