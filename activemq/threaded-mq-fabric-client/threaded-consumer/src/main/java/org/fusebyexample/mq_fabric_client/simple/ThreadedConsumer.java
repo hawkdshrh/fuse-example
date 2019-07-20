@@ -50,11 +50,13 @@ public class ThreadedConsumer {
     private static boolean ACK_ASYNC = true;
     private static boolean COPY_ON_SEND = false;
     private static boolean WATCH_TOPIC_ADVISIORIES = false;
+    private static boolean IS_DURABLE_SUBSCRIBER = false;
     private static boolean EXCLUSIVE_CONSUMER = false;
     private static boolean STATS_ENABLED = false;
     private static boolean OPTIMIZE_ACK = false;
     private static boolean BROWSE_ONLY = false;
     private static boolean UNIQUE_CLIENT_ID = false;
+    private static boolean THROW_EXCEPTION = false;
     private static int CONNECTION_CLOSE_TIMEOUT = 15000;
     private static String SELECTOR;
 
@@ -92,11 +94,13 @@ public class ThreadedConsumer {
             ACK_ASYNC = Boolean.parseBoolean(properties.getProperty("ack.async"));
             COPY_ON_SEND = Boolean.parseBoolean(properties.getProperty("copy.on.send"));
             WATCH_TOPIC_ADVISIORIES = Boolean.parseBoolean(properties.getProperty("watch.topic.advisories"));
+            IS_DURABLE_SUBSCRIBER = Boolean.parseBoolean(properties.getProperty("is.durable.subscriber"));
             EXCLUSIVE_CONSUMER = Boolean.parseBoolean(properties.getProperty("exclusive.consumer"));
             STATS_ENABLED = Boolean.parseBoolean(properties.getProperty("stats.enabled"));
             OPTIMIZE_ACK = Boolean.parseBoolean(properties.getProperty("optimize.ack"));
             BROWSE_ONLY = Boolean.parseBoolean(properties.getProperty("is.browser"));
             UNIQUE_CLIENT_ID = Boolean.parseBoolean(properties.getProperty("use.unique.clientid"));
+            THROW_EXCEPTION = Boolean.parseBoolean(properties.getProperty("is.throw.exception"));
             CONNECTION_CLOSE_TIMEOUT = Integer.parseInt(properties.getProperty("connection.close.timeout"));
             SELECTOR = properties.getProperty("message.selector");
 
@@ -136,7 +140,7 @@ public class ThreadedConsumer {
 
                 for (int i = 0; i < NUM_THREADS_PER_DESTINATION; i++) {
                     if (!BROWSE_ONLY) {
-                        ConsumerThread consumerThread = new ConsumerThread(factory, destination, i + 1, CLIENT_PREFIX, MESSAGE_TIMEOUT_MILLISECONDS, SELECTOR, SESSION_TRANSACTED, TRANSACTION_IS_BATCH, TRANSACTION_DELAY, READ_DELAY, UNIQUE_CLIENT_ID);
+                        ConsumerThread consumerThread = new ConsumerThread(factory, destination, i + 1, CLIENT_PREFIX, MESSAGE_TIMEOUT_MILLISECONDS, SELECTOR, SESSION_TRANSACTED, TRANSACTION_IS_BATCH, TRANSACTION_DELAY, READ_DELAY, UNIQUE_CLIENT_ID, THROW_EXCEPTION, IS_DURABLE_SUBSCRIBER);
                         consumerThread.start();
                         threads.add(consumerThread);
                     } else {

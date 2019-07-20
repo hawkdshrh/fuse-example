@@ -17,6 +17,7 @@ import javax.jms.Message;
 import javax.jms.MessageConsumer;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
+import javax.jms.Topic;
 import javax.jms.TransactionRolledBackException;
 import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.command.ActiveMQMessage;
@@ -48,13 +49,15 @@ public class ConsumerThread extends Thread {
     private final Timer timer = new Timer();
     private final Executor executor = Executors.newCachedThreadPool();
     private Boolean isCommit = false;
+    private Boolean isThrowException = false;
+    private Boolean isDurableSub = false;
 
     private boolean connected = false;
     private boolean isDone = false;
 
     private static final Logger LOG = LoggerFactory.getLogger(ConsumerThread.class);
 
-    public ConsumerThread(ConnectionFactory factory, Destination destination, int threadNum, String clientPrefix, int messageTimeoutMs, String selector, boolean transacted, boolean transactionIsBatch, long transactionDelay, long readDelay, boolean uniqueClientId) {
+    public ConsumerThread(ConnectionFactory factory, Destination destination, int threadNum, String clientPrefix, int messageTimeoutMs, String selector, boolean transacted, boolean transactionIsBatch, long transactionDelay, long readDelay, boolean uniqueClientId, boolean throwException, boolean isDurableSubscriber) {
         this.factory = factory;
         this.destination = destination;
         this.selector = selector;
@@ -66,6 +69,8 @@ public class ConsumerThread extends Thread {
         this.transactionDelay = transactionDelay;
         this.readDelay = readDelay;
         this.uniqueClientId = uniqueClientId;
+        this.isThrowException = throwException;
+        this.isDurableSub = isDurableSubscriber;
     }
 
     @Override
@@ -97,9 +102,17 @@ public class ConsumerThread extends Thread {
 
                         if (selector != null && !selector.isEmpty()) {
                             LOG.info("With selector: " + selector);
-                            consumer = session.createConsumer(destination, selector);
+                            if (isDurableSub) {
+                                consumer = session.createDurableSubscriber((Topic) destination, connection.getClientID(), selector, true);
+                            } else {
+                                consumer = session.createConsumer(destination, selector);
+                            }
                         } else {
-                            consumer = session.createConsumer(destination);
+                            if (isDurableSub) {
+                                consumer = session.createDurableSubscriber((Topic) destination, connection.getClientID());
+                            } else {
+                                consumer = session.createConsumer(destination);
+                            }
                         }
                         if (transacted && transactionIsBatch) {
                             timer.scheduleAtFixedRate(new CommitTask(), transactionDelay, transactionDelay);
@@ -108,6 +121,7 @@ public class ConsumerThread extends Thread {
                     } catch (Exception ex) {
                         connected = false;
                         LOG.error("Unhandled exception while connecting.  Retrying...");
+                        ex.printStackTrace();
                         if (consumer != null) {
                             try {
                                 LOG.info("Closing consumer: {}", this.threadNum);
@@ -140,19 +154,25 @@ public class ConsumerThread extends Thread {
                     Message message = consumer.receive(messageTimeoutMs);
 
                     if (message != null) {
+
+                        if (isThrowException) {
+
+                            session.close();
+                        }
+
                         msgsRecd++;
                         LOG.info("Thread {}: {} : Got message {}; total: {} path: {}.", this.threadNum, System.currentTimeMillis(), message.getJMSMessageID(), msgsRecd, ((ActiveMQMessage) message).getBrokerPath());
 
-                        if (message.getJMSReplyTo() != null) {    
+                        if (message.getJMSReplyTo() != null) {
                             replySession = connection.createSession(transacted, Session.AUTO_ACKNOWLEDGE);
                             MessageProducer producer = replySession.createProducer(message.getJMSReplyTo());
                             producer.setTimeToLive(1000);
                             String response = "Received: " + message.getJMSMessageID();
                             LOG.info("Sending Response: " + response);
                             Message responseMsg = new ActiveMQTextMessage();
-                            ((ActiveMQTextMessage)responseMsg).setText(response);
+                            ((ActiveMQTextMessage) responseMsg).setText(response);
                             producer.send(responseMsg);
-                            producer.close(); 
+                            producer.close();
                             replySession.close();
                             replySession = null;
                         }

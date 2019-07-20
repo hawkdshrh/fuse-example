@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: test-amq-s2i-build
+  annotations:
+    openshift.io/display-name: Test S2I JBoss AMQ Broker
+    description: Template to build a Test JBoss AMQ Broker using S2I
+    iconClass: icon-jboss
+    tags: messaging,amq,jboss,xpaas
+objects:
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    labels:
+      application: ${NAME}
+    name: ${NAME}
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      application: ${NAME}
+    name: ${NAME}
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ${NAME}:${OUTPUT_TAG}
+    source:
+      binary: {}
+      type: Binary
+    strategy:
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: ${BASE_IMAGESTREAM_NAME}:${BASE_IMAGESTREAM_TAG}
+          namespace: ${BASE_IMAGESTREAM_NAMESPACE}
+      type: Source
+parameters:
+- name: NAME
+  displayName: Name
+  description: Name of the Application
+  value: test-custom-jboss-amq
+  required: true
+- name: BASE_IMAGESTREAM_NAME
+  displayName: Base ImageStream
+  description: Name of the Base ImageStream
+  value: test-jboss-amq
+  required: true
+- name: BASE_IMAGESTREAM_TAG
+  displayName: Base ImageStream Tag
+  description: Base ImageStream Tag
+  value: latest
+  required: true
+- name: BASE_IMAGESTREAM_NAMESPACE
+  displayName: Base ImageStream Namespace
+  description: Base ImageStream Namespace
+  value: "openshift"
+- name: OUTPUT_TAG
+  displayName: Output Tag
+  description: Tag for the Resulting Output Image
+  value: "latest"
