@@ -28,7 +28,7 @@
   <description>An example which use a CXF consumer and the OSGI HTTP Service</description>
   <properties>
       <cxf.version>3.0.4.redhat-621084</cxf.version>
-      <camel.version>2.15.1.redhat-621084</camel.version>
+      <camel.version>2.24.0</camel.version>
       <slf4j.version>1.7.1</slf4j.version>
       <wss4j.version>2.0.3</wss4j.version>
   </properties>
