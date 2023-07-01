@@ -1,0 +1,33 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  labels:
+    strimzi.io/cluster: registry-cluster
+  name: registry-user
+  namespace: registry
+spec:
+  authentication:
+    type: tls
+  authorization:
+    acls:
+      - host: '*'
+        operation: All
+        resource:
+          name: '*'
+          patternType: literal
+          type: topic
+      - host: '*'
+        operation: All
+        resource:
+          name: '*'
+          patternType: literal
+          type: group
+      - host: '*'
+        operation: All
+        resource:
+          name: '*'
+          patternType: literal
+          type: transactionalId
+    type: simple
+
+

@@ -1,0 +1,19 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry
+metadata:
+  name: apicurioregistry-kafkasql
+  namespace: registry
+spec:
+  configuration:
+    kafkasql:
+      bootstrapServers: 'registry-cluster-kafka-bootstrap.registry.svc:9092'
+      security:
+        tls:
+          keystoreSecretName: registry-user
+          truststoreSecretName: registry-cluster-cluster-ca-cert
+    logLevel: DEBUG
+    persistence: kafkasql
+    registryLogLevel: DEBUG
+  deployment:
+    host: apicurioregistry-kafkasql.registry.router-default.apps-crc.testing
+    replicas: 1
